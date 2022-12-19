@@ -1,2 +1,0 @@
-#!/bin/sh
-root -q -l -b 'printbar.C("2007baro314_00.dat")'
