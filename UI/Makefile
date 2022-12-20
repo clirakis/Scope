@@ -28,7 +28,7 @@ SRC     =
 SRCCPP  = main.cpp FFTDlg.cpp TimeDlg.cpp ChannelFrame.cpp \
 	ModuleDlg.cpp TraceDlg.cpp TraceFrame.cpp DescDlg.cpp \
 	Description.cpp Input.cpp MSLIST.cpp MeasDlg.cpp SPlot.cpp \
-	WaveDlg.cpp S_Dict.cpp
+	WaveDlg.cpp UserSignals.cpp S_Dict.cpp
 
 SRCS    = $(SRC) $(SRCCPP)
 

@@ -20,152 +20,35 @@
 // System includes.
 #include <iostream>
 using namespace std;
-#include <cstring>
-#include <cmath>
-#include <csignal>
-#include <unistd.h>
-#include <time.h>
-#include <fstream>
-#include <ostream>
-#include <sys/time.h>
-#include <sys/resource.h>
+// #include <cstring>
+// #include <cmath>
+// #include <csignal>
+// #include <unistd.h>
+// #include <time.h>
+// #include <fstream>
+// #include <ostream>
+// #include <sys/time.h>
+// #include <sys/resource.h>
 
 /// Root includes http://root.cern.ch
 #include <TROOT.h>
 #include <TRint.h>
 #include <TStyle.h>
 #include <TEnv.h>  
-#include <KeySymbols.h>
-#include <pthread.h>
 
 /// Local Includes.
 #include "debug.h"
+#include "CLogger.hh"
+#include "UserSignals.hh"
 #include "DSA602.hh"
 #include "SPlot.hh"
 #include "Version.hh"
 
 static TApplication* theApp;
 static bool          verbose;
-static ofstream*     logFile;
-static DSA602*       scope;
 static SPlot*        plotWindow;
-
-/**
-******************************************************************
-*
-* Function Name : Terminate
-*
-* Description : Deal with errors in a clean way!
-*               ALL, and I mean ALL exits are brought 
-*               through here!
-*
-* Inputs : Signal causing termination. 
-*
-* Returns : none
-*
-* Error Conditions : Well, we got an error to get here. 
-*
-*******************************************************************
-*/ 
-static void Terminate (int sig) 
-{
-    static int i=0;
-    char msg[128], tmp[64];
-    time_t now;
-    time(&now);
- 
-    i++;
-    if (i>1) 
-    {
-        _exit(-1);
-    }
-
-    *logFile << "# Program Ends: " << ctime(&now);
-
-    switch (sig)
-    {
-    case -1: 
-      sprintf( msg, "User abnormal termination");
-      break;
-    case 0:                    // Normal termination
-        sprintf( msg, "Normal program termination.");
-        break;
-    case SIGHUP:
-        sprintf( msg, " Hangup");
-        break;
-    case SIGINT:               // CTRL+C signal 
-        sprintf( msg, " SIGINT ");
-        break;
-    case SIGQUIT:               //QUIT 
-        sprintf( msg, " SIGQUIT ");
-        break;
-    case SIGILL:               // Illegal instruction 
-        sprintf( msg, " SIGILL ");
-        break;
-    case SIGABRT:              // Abnormal termination 
-        sprintf( msg, " SIGABRT ");
-        break;
-    case SIGBUS:               //Bus Error! 
-        sprintf( msg, " SIGBUS ");
-        break;
-    case SIGFPE:               // Floating-point error 
-        sprintf( msg, " SIGFPE ");
-        break;
-    case SIGKILL:               // Kill!!!! 
-        sprintf( msg, " SIGKILL");
-        break;
-    case SIGSEGV:              // Illegal storage access 
-        sprintf( msg, " SIGSEGV ");
-        break;
-    case SIGTERM:              // Termination request 
-        sprintf( msg, " SIGTERM ");
-        break;
-    case SIGSTKFLT:               // Stack fault
-        sprintf( msg, " SIGSTKFLT ");
-        break;
-    case SIGTSTP:               // 
-        sprintf( msg, " SIGTSTP");
-        break;
-    case SIGXCPU:               // 
-        sprintf( msg, " SIGXCPU");
-        break;
-    case SIGXFSZ:               // 
-        sprintf( msg, " SIGXFSZ");
-        break;
-    case SIGSTOP:               // 
-        sprintf( msg, " SIGSTOP ");
-        break;
-    case SIGPWR:               // 
-        sprintf( msg, " SIGPWR ");
-        break;
-    case SIGSYS:               // 
-        sprintf( msg, " SIGSYS ");
-        break;
-    default:
-        sprintf( msg, " Uknown signal type: %d", sig);
-        break;
-    }
-    sprintf ( tmp, " %s %d", LastFile, LastLine);
-    strncat ( msg, tmp, sizeof(msg));
-
-    *logFile << msg << endl;
-    
-    // User termination here
-    delete scope;
-    delete theApp;
-
-    logFile->close();
-    delete logFile;
-
-    if (sig == 0)
-    {
-        _exit (0);
-    }
-    else
-    {
-        _exit (-1);
-    }
-}
+static CLogger*      logger;
+static Int_t         VerboseLevel;
 
 /**
  ******************************************************************
@@ -223,7 +106,7 @@ ProcessCommandLineArgs(int argc, char **argv)
     SET_DEBUG_STACK;
     do
     {
-        option = getopt( argc, argv, "hHnv");
+        option = getopt( argc, argv, "hHnv:V:");
         switch(option)
         {
         case 'h':
@@ -232,7 +115,8 @@ ProcessCommandLineArgs(int argc, char **argv)
         Terminate(0);
         break;
         case 'v':
-            verbose = true;
+        case 'V':
+            VerboseLevel = atoi(optarg);
             break;
         }
     } while(option != -1);
@@ -263,34 +147,17 @@ ProcessCommandLineArgs(int argc, char **argv)
  */
 static bool Initialize(void)
 {
+    char msg[64];
     SET_DEBUG_STACK;
-    time_t now;
-    char   msg[128];
-    time(&now);
-    struct tm *tmnow = gmtime(&now);
-    strftime (msg, sizeof(msg), "%F %T", tmnow);
-
-
-    signal (SIGHUP , Terminate);   // Hangup.
-    signal (SIGINT , Terminate);   // CTRL+C signal 
-    signal (SIGKILL, Terminate);   // 
-    signal (SIGQUIT, Terminate);   // 
-    signal (SIGILL , Terminate);   // Illegal instruction 
-    signal (SIGABRT, Terminate);   // Abnormal termination 
-    signal (SIGIOT , Terminate);   // 
-    signal (SIGBUS , Terminate);   // 
-    signal (SIGFPE , Terminate);   // 
-    signal (SIGSEGV, Terminate);   // Illegal storage access 
-    signal (SIGTERM, Terminate);   // Termination request 
-    signal (SIGSTKFLT, Terminate); // 
-    signal (SIGSTOP, Terminate);   // 
-    signal (SIGPWR, Terminate);    // 
-    signal (SIGSYS, Terminate);    // 
+    SetSignals();
 
     // User initialization goes here. 
     // ========================================================
-    logFile = new ofstream("DSA602.log");
-    *logFile << "# Program DSA602 begins: " << msg << endl;
+    sprintf(msg, "%d.%d",MAJOR_VERSION, MINOR_VERSION);
+    double version = atof( msg);
+    logger = new CLogger("oncore.log", "oncore", version);
+    logger->SetVerbose(VerboseLevel);
+
     // User initialization goes here.
     plotWindow = new SPlot(gClient->GetRoot(), 800, 200, verbose);
     return true;
@@ -334,15 +201,6 @@ int main(int argc, char **argv)
     if (Initialize())
     {
         theApp->Run();
-#if 0
-	scope->UpTime();
-	nanosleep(&sleeptime, NULL);
-	GParse A("CALIBRATOR AMPLITUDE:5.0E-1,FREQ:1.024E+6,IMPEDANCE:5.0E+1");
-	cout << A;
-	rc = A.Value("FREQ");
-	cout << "Freq:" << rc << endl;
-	cout << "Avg:" << scope->Avg() << endl;
-#endif
     }
     Terminate(0);
 }
