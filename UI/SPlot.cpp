@@ -33,52 +33,24 @@ using namespace std;
 #include <TROOT.h>
 #include <TApplication.h>
 #include <TVirtualX.h>
-#include <TGResourcePool.h>
-#include <TGListBox.h>
-#include <TGListTree.h>
-#include <TGFSContainer.h>
-#include <TGClient.h>
-#include <TGFrame.h>
-#include <TGIcon.h>
-#include <TGLabel.h>
 #include <TGButton.h>
-#include <TGTextEntry.h>
-#include <TGNumberEntry.h>
-#include <TGMsgBox.h>
 #include <TGMenu.h>
 #include <TGCanvas.h>
-#include <TGComboBox.h>
-#include <TGTab.h>
-#include <TGSlider.h>
-#include <TGDoubleSlider.h>
 #include <TGFileDialog.h>
 #include <TGButton.h>
-#include <TGShutter.h>
-#include <TGProgressBar.h>
-#include <TGColorSelect.h>
-#include <RQ_OBJECT.h>
 #include <TRootEmbeddedCanvas.h>
+#include <TGToolBar.h>
+#include <TGStatusBar.h>
 #include <TCanvas.h>
 #include <TH1.h>
-#include <TH2.h>
-#include <TRandom.h>
 #include <TSystem.h>
-#include <TSystemDirectory.h>
-#include <TEnv.h>
-#include <TFile.h>
-#include <TKey.h>
-#include <TVirtualX.h>
-#include <TGTextEditDialogs.h> // TGPrintDialog
 #include <TRootHelpDialog.h>
-#include <TQObject.h>
 #include <TGButtonGroup.h>
-#include <TFile.h>
-#include <TNtuple.h>
-#include <TPoint.h>
-#include <TPad.h>
-#include <TVirtualPad.h>
-#include <TMultiGraph.h>
 #include <TLegend.h>
+#include <TMarker.h>
+#include <TAxis.h>
+#include <TGraph.h>
+#include <TGMsgBox.h>
 
 #include "debug.h"
 #include "SPlot.hh"
@@ -181,7 +153,7 @@ static const char *HelpText1 =
  *
  *******************************************************************
  */
-SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h, int v) : 
+SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) : 
     TGMainFrame( p, w, h,  kVerticalFrame)
 {
     SetCleanup(kDeepCleanup);
@@ -215,7 +187,7 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h, int v) :
     //fLegend      = NULL;
     fGraph       = NULL;
     fZoomLevel   = 2;
-    fVerbose     = v;
+
     // Finally create scope object
     fScope = (void *) new DSA602( Scope_GPIB_A);
     UpdateTraceButtons();
@@ -240,7 +212,7 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h, int v) :
  *
  *******************************************************************
  */
-SPlot::~SPlot()
+SPlot::~SPlot(void)
 {
     DSA602* s = (DSA602*) fScope;
 
@@ -387,7 +359,7 @@ void SPlot::AddEmbeddedCanvas(UInt_t w, UInt_t h)
  *
  *******************************************************************
  */
-void SPlot::CreateMenuBar()
+void SPlot::CreateMenuBar(void)
 {
     TGPopupMenu *MenuFile, *MenuView, *MenuHelp;
 	//*MenuEdit
@@ -489,7 +461,7 @@ void SPlot::CreateMenuBar()
  *
  *******************************************************************
  */
-void SPlot::CreateToolBar()
+void SPlot::CreateToolBar(void)
 {
     TString Path;
 
@@ -592,7 +564,7 @@ void SPlot::HandleToolBar(Int_t id)
  *
  *******************************************************************
  */
-void SPlot::CreateStatusBar()
+void SPlot::CreateStatusBar(void)
 {
     /*
      * Finally add a status bar at the bottom. 
@@ -606,27 +578,6 @@ void SPlot::CreateStatusBar()
 		    TGLayoutHints( kLHintsExpandX , 2, 2, 2, 2));
     fStatusBar->SetText("Please Select Data to Display.",0);
 }
-/**
- ******************************************************************
- *
- * Function Name :
- *
- * Description :
- *
- * Inputs :
- *
- * Returns :
- *
- * Error Conditions :
- * 
- * Unit Tested on: 
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-
 /**
  ******************************************************************
  *
@@ -773,7 +724,7 @@ void SPlot::SetCurrentFileName(const char *File)
  *
  *******************************************************************
  */
-void SPlot::DoLoad()
+void SPlot::DoLoad(void)
 {
     TGFileInfo fi;
 
@@ -831,7 +782,7 @@ void SPlot::PlotMe(Int_t Index)
  *
  *******************************************************************
  */
-void SPlot::CloseWindow()
+void SPlot::CloseWindow(void)
 {
    // Got close message for this MainFrame. Terminates the application.
    gApplication->Terminate(0);
@@ -979,7 +930,7 @@ void SPlot::ProcessedEvent(Int_t event, Int_t px, Int_t py,
  *
  *******************************************************************
  */
-void SPlot::UnZoom()
+void SPlot::UnZoom(void)
 {
     TH1 *h = fGraph->GetHistogram();
     if (h)
@@ -1057,7 +1008,7 @@ void SPlot::ZoomAxis(TAxis *a)
  *
  *******************************************************************
  */
-void SPlot::Zoom()
+void SPlot::Zoom(void)
 {
     TH1 *h = fGraph->GetHistogram();
     TAxis *ax;
@@ -1141,14 +1092,14 @@ bool SPlot::OpenAndParseFile(const char *file)
 #endif
     return true;
 }
-bool SPlot::CreateGraphObjects()
+bool SPlot::CreateGraphObjects(void)
 {
     //ftmg         = new TMultiGraph();
     //fLegend      = new TLegend(0.80, 0.75, 0.95, 0.89);
 
     return true;
 }
-bool SPlot::CleanGraphObjects()
+bool SPlot::CleanGraphObjects(void)
 {
     gPad->Clear();
 
@@ -1181,7 +1132,7 @@ bool SPlot::CleanGraphObjects()
  *
  *******************************************************************
  */
-void SPlot::DoSaveAs()
+void SPlot::DoSaveAs(void)
 {
 
     TGFileInfo fi;
@@ -1222,7 +1173,7 @@ void SPlot::DoSaveAs()
  *
  *******************************************************************
  */
-void SPlot::GetData()
+void SPlot::GetData(void)
 {
     double *Y, *X;
     DSA602* scope = (DSA602*) fScope;

@@ -45,7 +45,6 @@ using namespace std;
 #include "Version.hh"
 
 static TApplication* theApp;
-static bool          verbose;
 static SPlot*        plotWindow;
 static CLogger*      logger;
 static Int_t         VerboseLevel;
@@ -74,7 +73,7 @@ static void Help(void)
     cout << "* Version: " << MAJOR_VERSION << "." 
 	 << MINOR_VERSION << "*" << endl;
     cout << "* Available options are :                  *" << endl;
-    cout << "*     -v verbose                           *" << endl;
+    cout << "*     -v verbose level                     *" << endl;
     cout << "*                                          *" << endl;
     cout << "********************************************" << endl;
 }
@@ -159,7 +158,7 @@ static bool Initialize(void)
     logger->SetVerbose(VerboseLevel);
 
     // User initialization goes here.
-    plotWindow = new SPlot(gClient->GetRoot(), 800, 200, verbose);
+    plotWindow = new SPlot(gClient->GetRoot(), 800, 200);
     return true;
 }
 

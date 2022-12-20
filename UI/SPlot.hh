@@ -19,26 +19,20 @@
  */
 #ifndef __SPLOT_hh_
 #define __SPLOT_hh_
-#  include <TROOT.h>
 #  include <TGFrame.h>
-#  include <Gtypes.h>
-#  include <Rtypes.h>
-#  include <TList.h>
-#  include <TGraph.h>
-#  include <TMultiGraph.h>
-#  include <TLegend.h>
-#  include <TRootEmbeddedCanvas.h>
-#  include <TGButton.h>
-#  include <TGStatusBar.h>
-#  include <TGToolBar.h>
 #  include <TPoint.h>
-#  include <TMarker.h>
 
 class TLegend;
 class TMultiGraph;
 class TObjString;
 class TGCheckButton;
 class TGRadioButton;
+class TGStatusBar;
+class TGToolBar;
+class TGraph;
+class TRootEmbeddedCanvas;
+class TMarker;
+class TAxis;
 
 enum PlotStateVals {PLOT_STATE_NORMAL, PLOT_STATE_ZOOM };
 
@@ -46,8 +40,7 @@ class SPlot : public TGMainFrame {
     ClassDef(SPlot, 0);
 
 public:
-    SPlot(const TGWindow *p, UInt_t w = 1000, UInt_t h = 400, 
-	      Int_t v=0);
+    SPlot(const TGWindow *p, UInt_t w = 1000, UInt_t h = 400);
     ~SPlot();
     void CloseWindow();
     void ProcessedEvent(Int_t event, Int_t x, Int_t y, TObject *selected);
