@@ -19,8 +19,7 @@
  */
 #ifndef __TIMEDLG_hh_
 #define __TIMEDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
+#    include <TGFrame.h>
 #    include <RQ_OBJECT.h>
 
 class TGLabel;

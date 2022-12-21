@@ -23,14 +23,9 @@ using namespace std;
 
 /// Root Includes
 #include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
-#include <TGButton.h>
 #include <TGComboBox.h>
-#include <TGMsgBox.h>
 #include <TVirtualX.h>
-
 
 /// Local Includes.
 #include "debug.h"
@@ -61,6 +56,7 @@ using namespace std;
 TimeDlg::TimeDlg(const TGWindow *main)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 40)
 {
+    SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
 
     Connect("CloseWindow()", "TimeDlg", this, "CloseWindow()");
@@ -73,8 +69,8 @@ TimeDlg::TimeDlg(const TGWindow *main)
 
     MapSubwindows();
     Resize();
-    Update();
 
+    Update();
     // position relative to the parent's window
     Window_t wdum;
     int ax, ay;
@@ -83,13 +79,15 @@ TimeDlg::TimeDlg(const TGWindow *main)
     gVirtualX->TranslateCoordinates(
                     main->GetId(), this->GetParent()->GetId(),
                     0,
-                    (Int_t)(((TGFrame *) main)->GetHeight() - this->GetHeight()) >> 1,
+                    (Int_t)(((TGFrame *) main)->GetHeight() - 
+			    this->GetHeight()) >> 1,
                     ax, ay, wdum);
 
     Move((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     MapWindow();
     fClient->WaitFor(this);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -113,6 +111,7 @@ TimeDlg::TimeDlg(const TGWindow *main)
  */
 void TimeDlg::BuildButtonBox()
 {
+    SET_DEBUG_STACK;
     TGButton *tb;
 
     // Create a frame to hold the buttons.
@@ -128,6 +127,7 @@ void TimeDlg::BuildButtonBox()
 
     ButtonFrame->Resize();
     AddFrame(ButtonFrame, new TGLayoutHints(kLHintsExpandX, 2, 2, 2, 2));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -151,6 +151,7 @@ void TimeDlg::BuildButtonBox()
  */
 void TimeDlg::BuildDisplayArea()
 {
+    SET_DEBUG_STACK;
     TGLabel      *label;
     Int_t        i;
     TGGroupFrame *gf = new TGGroupFrame( this, "Time base data", 
@@ -162,14 +163,14 @@ void TimeDlg::BuildDisplayArea()
     label = new TGLabel(gf, new TGHotString("Time base:"));
     gf->AddFrame(label);
     fTime = new TGComboBox(gf);
-    i=0;
-#if 0  // FIXME - I have no idea what fAllowed is.
-    while (Timebase::fAllowed[i].label != NULL)
+   
+
+
+    for (i=0; i<TimeBase::kTB_END;i++)
     {
-	fTime->AddEntry(Timebase::fAllowed[i].label, i);
-	i++;
+	fTime->AddEntry(TimeBase::Period[i].label, i);
     }
-#endif
+
     fTime->Select(0,kFALSE);
     fTime->Resize( 60, 20);
     gf->AddFrame(fTime);
@@ -191,6 +192,7 @@ void TimeDlg::BuildDisplayArea()
 
     //Resize();
     AddFrame(gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -215,6 +217,7 @@ void TimeDlg::BuildDisplayArea()
 void TimeDlg::CloseWindow()
 {
     // Called when closed via window manager action.
+    SET_DEBUG_STACK;
 
     delete this;
 }
@@ -242,6 +245,7 @@ void TimeDlg::CloseWindow()
  */
 void TimeDlg::Done()
 {
+    SET_DEBUG_STACK;
     SendCloseMessage();
 }
 /**
@@ -266,6 +270,7 @@ void TimeDlg::Done()
  */
 void TimeDlg::DoClose()
 {
+    SET_DEBUG_STACK;
    // Handle close button.
     SendCloseMessage();
 }
@@ -291,21 +296,35 @@ void TimeDlg::DoClose()
  */
 void TimeDlg::Update(void)
 {
-#if 0  // FIXME
-    TimeGPIB* h = (TimeGPIB *) fGPIB;
+    SET_DEBUG_STACK;
     char s[32];
+    Int_t i = 0;
+    TimeBase *tb = TimeBase::GetThis();
 
-    h->Update();
-    Int_t i = h->TimeIndex();
+    // TESTME
+#if 0
+    // Obtain the time index from the header. 
+    // Get the current values of the waveform 
+    DSA602::GetThis()->UpdatewaveformHeader();
+    Int_t i = 0;
+    // Not sure how to do this in the new style. 
+#else
+    // This may be window or main depending on setup???
+    Double_t t = tb->WindowTime();
+    // Find index
+    i = tb->IndexFromTime(t);
+#endif
+    // Set it in the dialog box to the correct value. 
     fTime->Select( i, kFALSE);
 
     // update the combo box with the proper selections. 
     UpdateLength(i);
 
     memset(s, 0, sizeof(s));
-    sprintf(s, "%f", h->XIncrement());
+    //sprintf(s, "%f", h->XIncrement());
+    sprintf(s, "%f", tb->MainXIncrement());
     fXIncr->SetText(s);
-#endif
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -329,14 +348,22 @@ void TimeDlg::Update(void)
  */
 void TimeDlg::SetTime(int index)
 {
-#if 0
+    SET_DEBUG_STACK;
+    //double  val = TimeBase::Period[index].DT;
+
+#if 0 // TODO
     TimeGPIB* h = (TimeGPIB *) fGPIB;
-    double  val = Timebase::fAllowed[index].DT;
     //cout << "UPDATE DT: " << val << endl;
     h->SendCommand( Timebase::TIME, val);
+#else
+    TimeBase *tb = TimeBase::GetThis();
+    // Since I initially wrote this I didn't know the difference between
+    // main and window. For the moment, we will use main. 
+    tb->SetPeriod(index);   // indexes should be the same TESTME
+#endif
     UpdateLength(index);
     UpdateXIncr();
-#endif
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -360,6 +387,7 @@ void TimeDlg::SetTime(int index)
  */
 void TimeDlg::UpdateLength(int index)
 {
+    SET_DEBUG_STACK;
 #if 0
     TimeGPIB* h = (TimeGPIB *) fGPIB;
     unsigned short bits = Timebase::fAllowed[index].AllowedLengths;
@@ -378,6 +406,7 @@ void TimeDlg::UpdateLength(int index)
     }
     fLength->Select( h->LengthIndex(), kFALSE);
 #endif
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -401,6 +430,7 @@ void TimeDlg::UpdateLength(int index)
  */
 void TimeDlg::SetLength(int index)
 {
+    SET_DEBUG_STACK;
 #if 0
     TimeGPIB* h = (TimeGPIB *) fGPIB;
     double  val = Timebase::fTB_Length[index];
@@ -420,4 +450,5 @@ void TimeDlg::UpdateXIncr(void)
     sprintf(s, "%f", h->XIncrement());
     fXIncr->SetText(s);
 #endif
+    SET_DEBUG_STACK;
 }

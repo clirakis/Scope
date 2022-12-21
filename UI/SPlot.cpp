@@ -64,7 +64,7 @@ using namespace std;
 #include "DSA602.hh"
 #include "Version.hh"
 
-const int Scope_GPIB_A = 6;
+const int Scope_GPIB_A = 5;
 
 const char *PrintPrg[]  = {"/usr/bin/lpr","/usr/bin/lp"};
 const char *printName[] = {"zevonlaser","elvis"};
@@ -1177,7 +1177,6 @@ void SPlot::GetData(void)
 {
     double *Y, *X;
     DSA602* scope = (DSA602*) fScope;
-    TH1F *h;
     Int_t retval;
     Int_t i,n, TraceNumber;
 
@@ -1206,7 +1205,7 @@ void SPlot::GetData(void)
 #if 0
 	fGraph->SetTitle(scope->fWFMPRE->fWFId);
 	fGraph->Draw("ALP");
-	h = fGraph->GetHistogram();
+	TH1 *h = fGraph->GetHistogram();
 	if (h)
 	{
 	    h->SetXTitle(scope->fWFMPRE->XAxis());

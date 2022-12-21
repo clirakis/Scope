@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# backup files and other nonesense
+*~
+make.depend
+*log
+*pcm
