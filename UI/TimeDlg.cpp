@@ -359,7 +359,7 @@ void TimeDlg::SetTime(int index)
     TimeBase *tb = TimeBase::GetThis();
     // Since I initially wrote this I didn't know the difference between
     // main and window. For the moment, we will use main. 
-    tb->SetPeriod(index);   // indexes should be the same TESTME
+    tb->MainTime(index);   // indexes should be the same TESTME
 #endif
     UpdateLength(index);
     UpdateXIncr();
@@ -388,40 +388,42 @@ void TimeDlg::SetTime(int index)
 void TimeDlg::UpdateLength(int index)
 {
     SET_DEBUG_STACK;
-#if 0
-    TimeGPIB* h = (TimeGPIB *) fGPIB;
-    unsigned short bits = Timebase::fAllowed[index].AllowedLengths;
-    int i;
+    // Everything is in the class timebase. 
+    TimeBase *tb = TimeBase::GetThis();
     char s[32];
 
+    // Clear out the listbox and refill it. 
+    // Rather than refilling this can I make it allowable/not allowable?
+    // FIXME
     fLength->RemoveAll();
-    for (i=0;i<10;i++)
+    for (uint32_t i=0;i<10;i++)
     {
-	if ((bits&(1<<i))>0)
+	if (tb->SampleLengthByIndex(i).valid)
 	{
 	    memset(s, 0, sizeof(s));
-	    sprintf(s, "%d", Timebase::fTB_Length[i]);
+	    sprintf(s, "%d", tb->SampleLengthByIndex(i).val);
 	    fLength->AddEntry(s,i);
 	}
     }
-    fLength->Select( h->LengthIndex(), kFALSE);
-#endif
+    // Select the maximum???
+    fLength->Select( tb->NumberEntries(), kFALSE);
     SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetLength
  *
- * Description : 
+ * Description : The user has chosen an available sample length. 
+ *               send the selection to the scope. 
  *
- * Inputs : None
+ * Inputs : index from drop down dialog. 
  *
  * Returns : None
  *
  * Error Conditions :
  *
- * Unit Tested on: 14-Dec-14
+ * Unit Tested on: 
  *
  * Unit Tested by:
  *
@@ -431,24 +433,18 @@ void TimeDlg::UpdateLength(int index)
 void TimeDlg::SetLength(int index)
 {
     SET_DEBUG_STACK;
-#if 0
-    TimeGPIB* h = (TimeGPIB *) fGPIB;
-    double  val = Timebase::fTB_Length[index];
-    //cout << "UPDATE LENGTH: " << val << endl;
-    h->SendCommand( Timebase::LENGTH, val);
+    TimeBase *tb = TimeBase::GetThis();
+    tb->MainLength(index); // This isn't really correct yet. FIXME
     UpdateXIncr();
-#endif
 }
 void TimeDlg::UpdateXIncr(void)
 {
-#if 0
+    SET_DEBUG_STACK;
     char s[32];
-    TimeGPIB* h = (TimeGPIB *) fGPIB;
-    h->Update();
-    
+    TimeBase *tb = TimeBase::GetThis();
+
     memset(s, 0, sizeof(s));
-    sprintf(s, "%f", h->XIncrement());
+    sprintf(s, "%f", tb->MainXIncrement());
     fXIncr->SetText(s);
-#endif
     SET_DEBUG_STACK;
 }
