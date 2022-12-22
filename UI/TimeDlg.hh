@@ -24,6 +24,7 @@
 
 class TGLabel;
 class TGComboBox;
+class TGRadioButton;
 
 class TimeDlg : public TGTransientFrame
 {
@@ -53,7 +54,8 @@ private:
     void UpdateXIncr(void);
 
     TGComboBox* fTime;
-    TGComboBox* fLength;
+    TGRadioButton *fLength[9];
+    //TGComboBox* fLength;
     TGLabel*    fXIncr;
 };
 

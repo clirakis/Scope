@@ -26,6 +26,7 @@ using namespace std;
 #include <TGLabel.h>
 #include <TGComboBox.h>
 #include <TVirtualX.h>
+#include <TGButton.h>
 
 /// Local Includes.
 #include "debug.h"
@@ -83,6 +84,7 @@ TimeDlg::TimeDlg(const TGWindow *main)
 			    this->GetHeight()) >> 1,
                     ax, ay, wdum);
 
+    Resize();
     Move((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     MapWindow();
@@ -109,7 +111,7 @@ TimeDlg::TimeDlg(const TGWindow *main)
  *
  *******************************************************************
  */
-void TimeDlg::BuildButtonBox()
+void TimeDlg::BuildButtonBox(void)
 {
     SET_DEBUG_STACK;
     TGButton *tb;
@@ -149,23 +151,23 @@ void TimeDlg::BuildButtonBox()
  *
  *******************************************************************
  */
-void TimeDlg::BuildDisplayArea()
+void TimeDlg::BuildDisplayArea(void)
 {
     SET_DEBUG_STACK;
-    TGLabel      *label;
-    Int_t        i;
-    TGGroupFrame *gf = new TGGroupFrame( this, "Time base data", 
-                                         kHorizontalFrame);
-    // Rows, Columns, Interval between frames, hints
-    gf->SetLayoutManager(new TGMatrixLayout( gf, 3, 2, 10, 2));
+    const char *LengthText[TimeBase::k_LENGTH_END] = {
+	"512","1024","2048","4096","5120", "8192", "16384", "20464", "32768"};
+    TGLabel       *label;
+    Int_t         i;
+    TGRadioButton *pRB;
 
-    // 1
-    label = new TGLabel(gf, new TGHotString("Time base:"));
-    gf->AddFrame(label);
-    fTime = new TGComboBox(gf);
-   
+    TGVerticalFrame *frame = new TGVerticalFrame( this, 200,400);
+    TGLayoutHints *lh = new TGLayoutHints(
+	kLHintsTop|kLHintsLeft|kLHintsExpandX|kLHintsExpandY, 2, 2, 2, 2);
 
-
+    // 1 =================================================================
+    label = new TGLabel(frame, new TGHotString("Time base:"));
+    frame->AddFrame(label);
+    fTime = new TGComboBox(frame);
     for (i=0; i<TimeBase::kTB_END;i++)
     {
 	fTime->AddEntry(TimeBase::Period[i].label, i);
@@ -173,25 +175,30 @@ void TimeDlg::BuildDisplayArea()
 
     fTime->Select(0,kFALSE);
     fTime->Resize( 60, 20);
-    gf->AddFrame(fTime);
+    frame->AddFrame(fTime, lh);
     fTime->Connect("Selected(int)", "TimeDlg", this, "SetTime(int)");
 
-    // 2
-    label = new TGLabel(gf, new TGHotString("NPoints:"));
-    gf->AddFrame(label);
-    fLength = new TGComboBox(gf);
-    fLength->Resize( 60, 20);
-    gf->AddFrame(fLength);
-    fLength->Connect("Selected(int)", "TimeDlg", this, "SetLength(int)");
+    // 2 =================================================================
+    TGGroupFrame  *gf = new TGGroupFrame( this, "SampleLength", 
+					  kHorizontalFrame);
+    frame->AddFrame(gf, lh);
 
-    // 3
-    label = new TGLabel(gf, new TGHotString("XIncr:"));
-    gf->AddFrame(label);
-    fXIncr = new TGLabel(gf, new TGHotString("XXXXXX"));
-    gf->AddFrame(fXIncr);
+    for (i=TimeBase::k512; i<TimeBase::k_LENGTH_END ; i++)
+    {
+	pRB = new TGRadioButton( gf, new TGHotString(LengthText[i]), i);
+	gf->AddFrame(pRB);
+	//pRB->Connect("Clicked()", "TimeDlg", this, "SetLength()");
+	fLength[i] = pRB;
+    }
 
-    //Resize();
-    AddFrame(gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
+    // 3 =================================================================
+    label = new TGLabel(frame, new TGHotString("XIncr:"));
+    frame->AddFrame(label);
+    fXIncr = new TGLabel(frame, new TGHotString("XXXXXX"));
+    frame->AddFrame(fXIncr);
+
+    frame->Resize();
+    AddFrame(frame, lh);
     SET_DEBUG_STACK;
 }
 /**
@@ -214,11 +221,10 @@ void TimeDlg::BuildDisplayArea()
  *
  *******************************************************************
  */
-void TimeDlg::CloseWindow()
+void TimeDlg::CloseWindow(void)
 {
     // Called when closed via window manager action.
     SET_DEBUG_STACK;
-
     delete this;
 }
 /**
@@ -322,7 +328,7 @@ void TimeDlg::Update(void)
 
     memset(s, 0, sizeof(s));
     //sprintf(s, "%f", h->XIncrement());
-    sprintf(s, "%f", tb->MainXIncrement());
+    sprintf(s, "%6.2f", tb->MainXIncrement());
     fXIncr->SetText(s);
     SET_DEBUG_STACK;
 }
@@ -368,9 +374,10 @@ void TimeDlg::SetTime(int index)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : UpdateLength
  *
- * Description : based on the time interval, update the time combo box.
+ * Description : Based on user selection of time, update the available
+ *               sample lengths
  *
  * Inputs : None
  *
@@ -390,23 +397,22 @@ void TimeDlg::UpdateLength(int index)
     SET_DEBUG_STACK;
     // Everything is in the class timebase. 
     TimeBase *tb = TimeBase::GetThis();
-    char s[32];
+    Bool_t rv;
 
-    // Clear out the listbox and refill it. 
-    // Rather than refilling this can I make it allowable/not allowable?
-    // FIXME
-    fLength->RemoveAll();
-    for (uint32_t i=0;i<10;i++)
+    // Make sure this index is up to date before making inquiry. 
+    tb->SampleLengthsFromTimeIndex((TimeBase::PERIOD)index);
+
+    for (uint32_t i=0;i<TimeBase::k_LENGTH_END;i++)
     {
-	if (tb->SampleLengthByIndex(i).valid)
-	{
-	    memset(s, 0, sizeof(s));
-	    sprintf(s, "%d", tb->SampleLengthByIndex(i).val);
-	    fLength->AddEntry(s,i);
-	}
+	rv = tb->SampleLengthByIndex(i).valid;
+	fLength[i]->SetEnabled(rv);
+	fLength[i]->SetState(kButtonUp);
     }
-    // Select the maximum???
-    fLength->Select( tb->NumberEntries(), kFALSE);
+    // And which one is currently checked?
+    double wl = tb->WindowLength(true);
+    //cout << "Current window length." << wl << endl;
+    int32_t idx = tb->IndexFromLength(wl);
+    fLength[idx]->SetState(kButtonDown);
     SET_DEBUG_STACK;
 }
 /**
@@ -433,6 +439,7 @@ void TimeDlg::UpdateLength(int index)
 void TimeDlg::SetLength(int index)
 {
     SET_DEBUG_STACK;
+    cout << "Radio button clicked." << index << endl;
     TimeBase *tb = TimeBase::GetThis();
     tb->MainLength(index); // This isn't really correct yet. FIXME
     UpdateXIncr();

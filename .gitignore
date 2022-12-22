@@ -36,3 +36,6 @@
 make.depend
 *log
 *pcm
+
+# The executable
+Scope
