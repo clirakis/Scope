@@ -265,10 +265,17 @@ void SPlot::AddControls(void)
     TGHButtonGroup *gf = new TGHButtonGroup( HFrame, "Trace:");
     gf->SetRadioButtonExclusive(kTRUE);
 
+    /*
+     * Up to 8 traces can be tracked at any given moment. 
+     * Which do you want? 
+     */
     for (i=0;i<8;i++)
     {
 	sprintf( title, "%d", i);
-	fTrace[i] = new TGRadioButton(gf, title);
+	/*
+	 * Add the radio button with a trace number given by i. 
+	 */
+	fTrace[i] = new TGRadioButton(gf, title, i);
 	fTrace[i]->Connect( "Clicked()", "SPlot", this, "SetTrace()");
 	gf->AddFrame(fTrace[i]);
     }
@@ -1156,9 +1163,9 @@ void SPlot::DoSaveAs(void)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : GetData
  *
- * Description : 
+ * Description : See what traces are available on the scope and pull them. 
  *
  * Inputs : none
  *
@@ -1178,11 +1185,18 @@ void SPlot::GetData(void)
     double *Y, *X;
     DSA602* scope = (DSA602*) fScope;
     Int_t retval;
-    Int_t i,n, TraceNumber;
 
-    n=0;
-    TraceNumber = 0;
-    for(i=0;i<8;i++)
+    Int_t n           = 0;
+    Int_t TraceNumber = 0;
+
+#if 0
+    /*
+     * FIXME!
+     * The lower level code in the library does not work. 
+     * Looking to see if there is any data at all to retrieve. 
+     * This does not do that correctly. 
+     */
+    for(Int_t i=0;i<8;i++)
     {
 	if(scope->GetDisplayTrace(i)) TraceNumber = i+1;
     }
@@ -1193,9 +1207,14 @@ void SPlot::GetData(void)
                      kMBIconExclamation, kMBOk, &retval);
 	return;
     }
-
+#endif
     SET_DEBUG_STACK;
     cout << "Get Data: " << n << endl;
+
+    /*
+     * for the given trace number, return the X and Y point set. 
+     * n contains the number of points in the curve if present. 
+     */
     n = scope->Curve(TraceNumber, &X, &Y);
     if (n>0)
     {
@@ -1224,31 +1243,99 @@ void SPlot::GetData(void)
     }
     SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : SetTrace
+ *
+ * Description : Handle the radio buttons that select which trace
+ * to display. Strictly one at a time right now. 
+ *
+ * Inputs : none
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void SPlot::SetTrace(void)
 {
+    SET_DEBUG_STACK;
     DSA602* scope = (DSA602*) fScope;
     Int_t   i;
-    for (i=0;i<8;i++)
+    /*
+     * Which button sent us this message? We need the id as an index. 
+     */
+    TGButton *btn = (TGButton *) gTQSender;
+    Int_t id      = btn->WidgetId();
+    /* 
+     * Make sure the radio behaviour is followed. 
+     * uncheck the old button. 
+     */
+    for (Int_t i=0; i<8; i++)
     {
-	if(fTrace[i]->GetState())
+	/*
+	 * loop over all the buttons. Make sure they aren't set unless
+	 * they are the desired button. 
+	 * The ids given are in the order of the buttons. This makes it easy
+	 * to make a match on which button needs to be pressed. 
+	 */
+	if ((i!=id) && (fTrace[i]->IsOn()))
 	{
-	    scope->SetDisplayTrace(i, true);
+	    fTrace[i]->SetState(kButtonUp);
 	}
     }
+    /*
+     * Finally record the trace to be downloaded. 
+     * FIXME ---- The SetDisplayTrace function is not shall we say functional.
+     */
+    scope->SetDisplayTrace(id, true);
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : UpdateTraceButtons
+ *
+ * Description : I think I was trying to see what traces were available
+ *               on the screen. This clearly does not do that.
+ *
+ * Inputs : none
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void SPlot::UpdateTraceButtons(void)
 {
     DSA602* scope = (DSA602*) fScope;
     int i;
+    // FIXME!
+    return;
     for (i=0;i<8;i++)
     {
+
 	if (scope->GetDisplayTrace(i))
 	{
-	    fTrace[i]->SetState(kButtonDown, kFALSE);
+	    //fTrace[i]->SetState(kButtonDown, kFALSE);
+	    cout << "Scope says, get trace: " << i << endl;
 	}
-	else
-	{
-	    fTrace[i]->SetState(kButtonUp, kFALSE);
-	}
+// 	else
+// 	{
+// 	    fTrace[i]->SetState(kButtonUp, kFALSE);
+// 	}
     }
 }
