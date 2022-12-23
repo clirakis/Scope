@@ -38,10 +38,10 @@ public:
     /// User pressed the OK button, end the dialog
     void   Done();
     /// Close the window
-    void   DoClose();
-    void   Update();
+    void   DoClose(void);
+    void   Update(void);
     void   SetTime(int);
-    void   SetLength(int);
+    void   SetLength(void);
 
 private:
 

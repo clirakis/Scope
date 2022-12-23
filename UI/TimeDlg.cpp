@@ -181,13 +181,17 @@ void TimeDlg::BuildDisplayArea(void)
     fTime->Connect("Selected(int)", "TimeDlg", this, "SetTime(int)");
 
     // 2 =================================================================
-    TGGroupFrame  *gf = new TGGroupFrame(this,"SampleLength",kHorizontalFrame);
-
+    /*
+     * Make a frame of radio buttons that permit selection 
+     * of the number of samples per trace. These vary based on the
+     * allowed number of samples per time period. 
+     */
+    TGGroupFrame *gf=new TGGroupFrame(frame,"SampleLength",kHorizontalFrame);
     for (i=TimeBase::k512; i<TimeBase::k_LENGTH_END ; i++)
     {
 	pRB = new TGRadioButton( gf, new TGHotString(LengthText[i]), i);
 	gf->AddFrame(pRB);
-	pRB->Connect("Clicked()", "TimeDlg", this, "SetLength(int)");
+	pRB->Connect("Clicked()", "TimeDlg", this, "SetLength()");
 	fLength[i] = pRB;
     }
     gf->Resize(40, 60);
@@ -348,16 +352,10 @@ void TimeDlg::SetTime(int index)
     SET_DEBUG_STACK;
     //double  val = TimeBase::Period[index].DT;
 
-#if 0 // TODO
-    TimeGPIB* h = (TimeGPIB *) fGPIB;
-    //cout << "UPDATE DT: " << val << endl;
-    h->SendCommand( Timebase::TIME, val);
-#else
     TimeBase *tb = TimeBase::GetThis();
     // Since I initially wrote this I didn't know the difference between
     // main and window. For the moment, we will use main. 
     tb->MainTime(index);   // indexes should be the same TESTME
-#endif
     UpdateLength(index);
     UpdateXIncr();
     SET_DEBUG_STACK;
@@ -412,9 +410,10 @@ void TimeDlg::UpdateLength(int index)
  * Function Name : SetLength
  *
  * Description : The user has chosen an available sample length. 
- *               send the selection to the scope. 
+ *               send the selection to the scope. This is handled through
+ *               presses on a radio button. 
  *
- * Inputs : index from drop down dialog. 
+ * Inputs : NONE, inferred is the ID of the radio button
  *
  * Returns : None
  *
@@ -427,13 +426,33 @@ void TimeDlg::UpdateLength(int index)
  *
  *******************************************************************
  */
-void TimeDlg::SetLength(int index)
+void TimeDlg::SetLength(void)
 {
     SET_DEBUG_STACK;
-    cout << "Radio button clicked." << index << endl;
-    return;
+    /*
+     * Which button sent us this message? We need the id as an index. 
+     */
+    TGButton *btn = (TGButton *) gTQSender;
+    Int_t id = btn->WidgetId();
+    /* 
+     * Make sure the radio behaviour is followed. 
+     * uncheck the old button. 
+     */
+    for (Int_t i=0; i<TimeBase::k_LENGTH_END; i++)
+    {
+	/*
+	 * loop over all the buttons. Make sure they aren't set unless
+	 * they are the desired button. 
+	 * The ids given are in the order of the buttons. This makes it easy
+	 * to make a match on which button needs to be pressed. 
+	 */
+	if ((i!=id) && (fLength[i]->IsOn()))
+	{
+	    fLength[i]->SetState(kButtonUp);
+	}
+    }
     TimeBase *tb = TimeBase::GetThis();
-    tb->MainLength(index); // This isn't really correct yet. FIXME
+    tb->MainLength(id); 
     UpdateXIncr();
 }
 void TimeDlg::UpdateXIncr(void)
