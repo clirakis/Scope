@@ -118,7 +118,7 @@ void TimeDlg::BuildButtonBox(void)
 
     // Create a frame to hold the buttons.
     TGCompositeFrame *ButtonFrame = new
-        TGCompositeFrame(this, 600, 20, kHorizontalFrame);
+        TGCompositeFrame(this, 600, 20, kHorizontalFrame|kSunkenFrame);
 
     TGLayoutHints* fL2 = new
         TGLayoutHints(kLHintsBottom | kLHintsCenterX, 0, 0, 5, 5);
@@ -162,40 +162,44 @@ void TimeDlg::BuildDisplayArea(void)
 
     TGVerticalFrame *frame = new TGVerticalFrame( this, 200,400);
     TGLayoutHints *lh = new TGLayoutHints(
-	kLHintsTop|kLHintsLeft|kLHintsExpandX|kLHintsExpandY, 2, 2, 2, 2);
+	kLHintsTop|kLHintsLeft|kLHintsExpandX, 2, 2, 2, 2);
 
     // 1 =================================================================
-    label = new TGLabel(frame, new TGHotString("Time base:"));
-    frame->AddFrame(label);
-    fTime = new TGComboBox(frame);
+
+    TGHorizontalFrame *hf = new TGHorizontalFrame( frame, 200, 100);
+    frame->AddFrame(hf, lh);
+    label = new TGLabel(hf, new TGHotString("Time base:"));
+    hf->AddFrame(label);
+    fTime = new TGComboBox(hf);
     for (i=0; i<TimeBase::kTB_END;i++)
     {
 	fTime->AddEntry(TimeBase::Period[i].label, i);
     }
-
     fTime->Select(0,kFALSE);
-    fTime->Resize( 60, 20);
-    frame->AddFrame(fTime, lh);
+    fTime->Resize( 40, 40);
+    hf->AddFrame(fTime, lh);
     fTime->Connect("Selected(int)", "TimeDlg", this, "SetTime(int)");
 
     // 2 =================================================================
-    TGGroupFrame  *gf = new TGGroupFrame( this, "SampleLength", 
-					  kHorizontalFrame);
-    frame->AddFrame(gf, lh);
+    TGGroupFrame  *gf = new TGGroupFrame(this,"SampleLength",kHorizontalFrame);
 
     for (i=TimeBase::k512; i<TimeBase::k_LENGTH_END ; i++)
     {
 	pRB = new TGRadioButton( gf, new TGHotString(LengthText[i]), i);
 	gf->AddFrame(pRB);
-	//pRB->Connect("Clicked()", "TimeDlg", this, "SetLength()");
+	pRB->Connect("Clicked()", "TimeDlg", this, "SetLength(int)");
 	fLength[i] = pRB;
     }
+    gf->Resize(40, 60);
+    frame->AddFrame(gf, lh);
 
     // 3 =================================================================
-    label = new TGLabel(frame, new TGHotString("XIncr:"));
-    frame->AddFrame(label);
-    fXIncr = new TGLabel(frame, new TGHotString("XXXXXX"));
-    frame->AddFrame(fXIncr);
+    hf = new TGHorizontalFrame( frame, 200, 100);
+    frame->AddFrame(hf, lh);
+    label = new TGLabel(hf, new TGHotString("XIncr:"));
+    hf->AddFrame(label);
+    fXIncr = new TGLabel(hf, new TGHotString("XXXXXX"));
+    hf->AddFrame(fXIncr);
 
     frame->Resize();
     AddFrame(frame, lh);
@@ -303,33 +307,20 @@ void TimeDlg::DoClose()
 void TimeDlg::Update(void)
 {
     SET_DEBUG_STACK;
-    char s[32];
-    Int_t i = 0;
     TimeBase *tb = TimeBase::GetThis();
 
     // TESTME
-#if 0
-    // Obtain the time index from the header. 
-    // Get the current values of the waveform 
-    DSA602::GetThis()->UpdatewaveformHeader();
-    Int_t i = 0;
-    // Not sure how to do this in the new style. 
-#else
     // This may be window or main depending on setup???
     Double_t t = tb->WindowTime();
     // Find index
-    i = tb->IndexFromTime(t);
-#endif
+    Int_t i = tb->IndexFromTime(t);
+
     // Set it in the dialog box to the correct value. 
     fTime->Select( i, kFALSE);
 
     // update the combo box with the proper selections. 
     UpdateLength(i);
-
-    memset(s, 0, sizeof(s));
-    //sprintf(s, "%f", h->XIncrement());
-    sprintf(s, "%6.2f", tb->MainXIncrement());
-    fXIncr->SetText(s);
+    UpdateXIncr();
     SET_DEBUG_STACK;
 }
 /**
@@ -440,6 +431,7 @@ void TimeDlg::SetLength(int index)
 {
     SET_DEBUG_STACK;
     cout << "Radio button clicked." << index << endl;
+    return;
     TimeBase *tb = TimeBase::GetThis();
     tb->MainLength(index); // This isn't really correct yet. FIXME
     UpdateXIncr();
@@ -451,7 +443,8 @@ void TimeDlg::UpdateXIncr(void)
     TimeBase *tb = TimeBase::GetThis();
 
     memset(s, 0, sizeof(s));
-    sprintf(s, "%f", tb->MainXIncrement());
+    double val = tb->MainXIncrement();
+    sprintf(s, "%g", val);
     fXIncr->SetText(s);
     SET_DEBUG_STACK;
 }
