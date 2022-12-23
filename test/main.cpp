@@ -1,15 +1,16 @@
 /**
  ******************************************************************
  *
- * Module Name : 
+ * Module Name : HP main program
  *
- * Author/Date : C.B. Lirakis / 01-Nov-05
+ * Author/Date : C.B. Lirakis / 27-Nov-14
  *
  * Description :
  *
  * Restrictions/Limitations :
  *
  * Change Descriptions :
+ *  17-Jan-21       CBL        Major Update
  *
  * Classification : Unclassified
  *
@@ -20,124 +21,153 @@
 // System includes.
 #include <iostream>
 using namespace std;
-#include <string>
+#include <cstring>
 #include <cmath>
-#include <stdio.h>
 #include <csignal>
-#include <unistd.h>
-#include <errno.h>
+#include <cstdlib>
 #include <ctime>
+#include <unistd.h>
+#include <time.h>
+
 #include <sys/time.h>
+#include <sys/resource.h>
 
 /// Local Includes.
 #include "debug.h"
+#include "CLogger.hh"
+#include "Version.hh"
+#include "DSA602.hh"
+#include "WFMPRE.hh"
+#include "GParse.hh"
 
-static bool verbose;
+/** Pointer to gpib interface to DSA602 digital scope */
+static DSA602 *hgpib;
+
+/** Control the verbosity of the program output via the bits shown. */
+static unsigned int VerboseLevel = 0;
+
+/** Pointer to the logger structure. */
+static CLogger   *logger;
+
+const int kGPIB_Address = 5; 
+
 /**
-******************************************************************
-*
-* Function Name : Terminate
-*
-* Description : Deal with errors in a clean way!
-*               ALL, and I mean ALL exits are brought 
-*               through here!
-*
-* Inputs : Signal causing termination. 
-*
-* Returns : none
-*
-* Error Conditions : Well, we got an error to get here. 
-*
-*******************************************************************
-*/ 
+ ******************************************************************
+ *
+ * Function Name : Terminate
+ *
+ * Description : Deal with errors in a clean way!
+ *               ALL, and I mean ALL exits are brought 
+ *               through here!
+ *
+ * Inputs : Signal causing termination. 
+ *
+ * Returns : none
+ *
+ * Error Conditions : Well, we got an error to get here. 
+ *
+ *******************************************************************
+ */ 
 static void Terminate (int sig) 
 {
-   static int i=0;
-   // prevent this from getting into a infinite loop of 
-   // deaths. 
+    static int i=0;
+    char msg[128], tmp[64];
+    time_t now;
+    time(&now);
+ 
     i++;
-    if (i>1)
-    { 
+    if (i>1) 
+    {
         _exit(-1);
     }
 
-    // Add the apprpriate message. 
     switch (sig)
     {
     case -1: 
-      cout << "User abnormal termination" << endl;
+      sprintf( msg, "User abnormal termination");
       break;
     case 0:                    // Normal termination
-        cout << "Normal program termination." << endl;
+        sprintf( msg, "Normal program termination.");
         break;
     case SIGHUP:
-        cout << " Hangup" << endl;
+        sprintf( msg, " Hangup");
         break;
     case SIGINT:               // CTRL+C signal 
-        cout << " SIGINT " << endl;
+        sprintf( msg, " SIGINT ");
         break;
     case SIGQUIT:               //QUIT 
-        cout << " SIGQUIT " << endl;
+        sprintf( msg, " SIGQUIT ");
         break;
     case SIGILL:               // Illegal instruction 
-        cout << " SIGILL " << endl;
+        sprintf( msg, " SIGILL ");
         break;
     case SIGABRT:              // Abnormal termination 
-        cout << " SIGABRT " << endl;
+        sprintf( msg, " SIGABRT ");
         break;
     case SIGBUS:               //Bus Error! 
-        cout << " SIGBUS " << endl;
+        sprintf( msg, " SIGBUS ");
         break;
     case SIGFPE:               // Floating-point error 
-        cout << " SIGFPE " << endl;
+        sprintf( msg, " SIGFPE ");
         break;
     case SIGKILL:               // Kill!!!! 
-        cout << " SIGKILL" << endl;
+        sprintf( msg, " SIGKILL");
         break;
     case SIGSEGV:              // Illegal storage access 
-        cout << " SIGSEGV " << endl;
+        sprintf( msg, " SIGSEGV ");
         break;
     case SIGTERM:              // Termination request 
-        cout << " SIGTERM " << endl;
-        break;
-    case SIGSTKFLT:               // Stack fault
-        cout << " SIGSTKFLT " << endl;
+        sprintf( msg, " SIGTERM ");
         break;
     case SIGTSTP:               // 
-        cout << " SIGTSTP" << endl;
+        sprintf( msg, " SIGTSTP");
         break;
     case SIGXCPU:               // 
-        cout << " SIGXCPU" << endl;
+        sprintf( msg, " SIGXCPU");
         break;
     case SIGXFSZ:               // 
-        cout << " SIGXFSZ" << endl;
+        sprintf( msg, " SIGXFSZ");
         break;
     case SIGSTOP:               // 
-        cout << " SIGSTOP " << endl;
-        break;
-    case SIGPWR:               // 
-        cout << " SIGPWR " << endl;
+        sprintf( msg, " SIGSTOP ");
         break;
     case SIGSYS:               // 
-        cout << " SIGSYS " << endl;
+        sprintf( msg, " SIGSYS ");
         break;
-    default:
-        cout << " Uknown signal type: "  << sig <<  endl;
+#ifndef MAC
+     case SIGPWR:               // 
+        sprintf( msg, " SIGPWR ");
+        break;
+    case SIGSTKFLT:               // Stack fault
+        sprintf( msg, " SIGSTKFLT ");
+        break;
+#endif
+   default:
+        sprintf( msg, " Uknown signal type: %d", sig);
         break;
     }
-
-    // Put any user termination routines here. 
-
+    if (sig!=0)
+    {
+        sprintf ( tmp, " %s %d\n", LastFile, LastLine);
+        strncat ( msg, tmp, sizeof(msg));
+        //syslog  ( LOG_ERR, msg);
+        logger->Log( msg);
+    }
+    
+    // User termination here
+    delete hgpib;
+    delete logger;
 
     if (sig == 0)
     {
-	_exit (0);
+        _exit (0);
     }
     else
     {
-	_exit (-1);
+        _exit (-1);
     }
 }
+
 
 /**
  ******************************************************************
@@ -156,10 +186,16 @@ static void Terminate (int sig)
  */
 static void Help(void)
 {
+    SET_DEBUG_STACK;
+    char msg[64];
+    sprintf(msg, "%d.%d",MAJOR_VERSION, MINOR_VERSION);
+
     cout << "********************************************" << endl;
-    cout << "* Test file for text Logging.              *" << endl;
+    cout << "* Keithly test                             *" << endl;
     cout << "* Built on "<< __DATE__ << " " << __TIME__ << "*" << endl;
+    cout << "* Version: " << msg << "*" << endl;
     cout << "* Available options are :                  *" << endl;
+    cout << "*     -v verbose                           *" << endl;
     cout << "*                                          *" << endl;
     cout << "********************************************" << endl;
 }
@@ -187,38 +223,24 @@ static void Help(void)
 static void
 ProcessCommandLineArgs(int argc, char **argv)
 {
-#if 0
-    int             count;
-	
-    for (count = 1; count < argc; count++)
-    {
-	if (!strcmp(argv[count], "-h"))
-	{
-	    Help();
-	    Terminate(0);
-	}
-    }
-#else
     int option;
+    SET_DEBUG_STACK;
     do
     {
-        option = getopt( argc, argv, "f:hHnv");
+        option = getopt( argc, argv, "hHv:");
         switch(option)
         {
-        case 'f':
-            break;
         case 'h':
         case 'H':
             Help();
-            Terminate(0);
-            break;
+        Terminate(0);
+        break;
         case 'v':
-            verbose = true;
+	    VerboseLevel = atoi(optarg);
+	    cout << "Setting verbosity to: " << VerboseLevel << endl;
             break;
-	}
+        }
     } while(option != -1);
-
-#endif
 }
 /**
  ******************************************************************
@@ -246,27 +268,180 @@ ProcessCommandLineArgs(int argc, char **argv)
  */
 static bool Initialize(void)
 {
+    SET_DEBUG_STACK;
+    time_t now;
+    char   msg[128];
+    time(&now);
+    struct tm *tmnow = gmtime(&now);
+    strftime (msg, sizeof(msg), "%F %T", tmnow);
 
-    signal (SIGHUP , Terminate);  // Hangup.
-    signal (SIGINT , Terminate);  // CTRL+C signal 
-    signal (SIGKILL, Terminate);  // 
-    signal (SIGQUIT, Terminate);  // 
-    signal (SIGILL , Terminate);  // Illegal instruction 
-    signal (SIGABRT, Terminate);  // Abnormal termination 
-    signal (SIGIOT , Terminate);  // 
-    signal (SIGBUS , Terminate);  // 
-    signal (SIGFPE , Terminate);  // 
-    signal (SIGSEGV, Terminate);  // Illegal storage access 
-    signal (SIGTERM, Terminate);  // Termination request 
+    signal (SIGHUP , Terminate);   // Hangup.
+    signal (SIGINT , Terminate);   // CTRL+C signal 
+    signal (SIGKILL, Terminate);   // 
+    signal (SIGQUIT, Terminate);   // 
+    signal (SIGILL , Terminate);   // Illegal instruction 
+    signal (SIGABRT, Terminate);   // Abnormal termination 
+    signal (SIGIOT , Terminate);   // 
+    signal (SIGBUS , Terminate);   // 
+    signal (SIGFPE , Terminate);   // 
+    signal (SIGSEGV, Terminate);   // Illegal storage access 
+    signal (SIGTERM, Terminate);   // Termination request 
     signal (SIGSTKFLT, Terminate); // 
-    signal (SIGSTOP, Terminate); // 
-    signal (SIGPWR, Terminate); // 
-    signal (SIGSYS, Terminate); // 
+    signal (SIGSTOP, Terminate);   // 
+    signal (SIGPWR, Terminate);    // 
+    signal (SIGSYS, Terminate);    // 
+
     // User initialization goes here. 
+    sprintf(msg, "%d.%d",MAJOR_VERSION, MINOR_VERSION);
+    double version = atof( msg);
+    logger = new CLogger("DSA602.log", "DSA602", version);
+    logger->SetVerbose(VerboseLevel);
+
+    // User initialization goes here.
+    hgpib = new DSA602( kGPIB_Address);
+    if (hgpib->CheckError())
+    {
+	return false;
+    }
+
+    hgpib->SetDebug(VerboseLevel);
 
     return true;
 }
+#if 0
+static void ParseTest(void)
+{
+    const char *str = "WFMPRE ACSTATE:ENHANCED,BIT/NR:16,BN.FMT:RI,BYT/NR:2,BYT.OR:LSB,CRVCHK:CHKSM0,ENCDG:BINARY,NR.PT:1024,PT.FMT:Y,WFID:STO1,XINCR:5.0E-7,XMULT:1.5625E-4,XUNIT:SECONDS,XZERO:0.0E+0,YMULT:1.5625E-4,YUNIT:VOLTS,YZERO:0.0E+0,LABEL:\"\",TIME:\"21:37:01.40\",DATE:\" 4-FEB-14\",TSTIME:0.0E+0";
 
+    //cout << "Test string: " << instr << endl;
+
+    //WFMPRE testme(str);
+    GParse p(str);
+    //cout << p;
+    cout << "Value found. " << p.Value("XUNIT") << endl;
+
+}
+#endif
+#if 0
+static void TestOne(void)
+{
+    System *pSys = hgpib->pSystem();
+    hgpib->GetWaveformHeader();
+    cout << *hgpib << endl;
+    //cout << "Uptime: " << hgpib->pSystem()->UpTime() << endl;
+    pSys->CalibratorFrequency(CAL_FREQ_ZERO);
+    cout << "CALIBRATOR FREQ" << pSys->CalibratorFrequency() << endl;
+    cout << "CALIBRATOR AMPL" << pSys->CalibratorAmplitude() << endl;
+    cout << "CALIBRATOR IMP" << pSys->CalibratorImpedence() << endl;
+    sleep(1);
+#if 0
+    pSys->CalibratorAmplitude(1.0);
+    cout << "CALIBRATOR AMPL 1.0" << pSys->CalibratorAmplitude() << endl;
+    sleep(1);
+
+    hgpib->pSystem()->CalibratorFrequency(CAL_FREQ_1KHZ);
+    cout << "CALIBRATOR FREQ" << pSys->CalibratorFrequency() << endl;
+    cout << "CALIBRATOR AMPL" << pSys->CalibratorAmplitude() << endl;
+    sleep(1);
+
+    hgpib->pSystem()->CalibratorFrequency(CAL_FREQ_1024MHZ);
+    cout << "CALIBRATOR FREQ" << pSys->CalibratorFrequency() << endl;
+    hgpib->pSystem()->CalibratorAmplitude(5.0);
+    cout << "CALIBRATOR AMPL" << pSys->CalibratorAmplitude() << endl;
+#endif
+
+    sleep(1);
+    pSys->CalibratorFrequency(CAL_FREQ_1KHZ);
+    cout << "CALIBRATOR FREQ" << pSys->CalibratorFrequency() << endl;
+
+}
+#endif
+#if 0
+static void TestTwo(void)
+{
+    System *pSys = hgpib->pSystem();
+    //cout << "Set: " << pSys->SetDate() << endl;
+    cout << pSys->Date() << endl;
+    cout << " Set Time : " << pSys->SetTime() << endl;
+    cout << pSys->Time() << endl;
+   
+}
+#endif
+#if 0
+static void TestThree(void)
+{
+    System *pSys = hgpib->pSystem();
+
+    cout << pSys->UserID("foo-bar") << endl;
+    cout << pSys->UserID() << endl;
+}
+#endif
+#if 0
+static void TestFour(void)
+{
+    //cout << *hgpib << endl;
+    cout << hgpib->pMeasurement()->Cross(true) << endl;
+    cout << hgpib->pMeasurement()->Delay(true) << endl;
+    cout << hgpib->pMeasurement()->Duty(true) << endl;
+    cout << hgpib->pMeasurement()->Falltime(true) << endl;
+    cout << hgpib->pMeasurement()->Frequency(true) << endl;
+    cout << hgpib->pMeasurement()->Gain(true) << endl;
+    cout << hgpib->pMeasurement()->Max(true) << endl;
+    cout << hgpib->pMeasurement()->Mean(true) << endl;
+    cout << hgpib->pMeasurement()->Midpoint(true) << endl;
+    cout << hgpib->pMeasurement()->Min(true) << endl;
+    cout << hgpib->pMeasurement()->Overshoot(true) << endl;
+    cout << hgpib->pMeasurement()->PDelay(true) << endl;
+    cout << hgpib->pMeasurement()->Period(true) << endl;
+    cout << hgpib->pMeasurement()->Phase(true) << endl;
+    cout << hgpib->pMeasurement()->PeakToPeak(true) << endl;
+    cout << hgpib->pMeasurement()->Risetime(true) << endl;
+    cout << hgpib->pMeasurement()->RMS(true) << endl;
+    cout << hgpib->pMeasurement()->SpectralFrequency(true) << endl;
+    cout << hgpib->pMeasurement()->Skew(true) << endl;
+    cout << hgpib->pMeasurement()->SpectralMagnitude(true) << endl;
+    cout << hgpib->pMeasurement()->TotalHarmonicDistortion(true) << endl;
+    cout << hgpib->pMeasurement()->TimeToTrigger(true) << endl;
+    cout << hgpib->pMeasurement()->Undershoot(true) << endl;
+    cout << hgpib->pMeasurement()->Width(true) << endl;
+    cout << hgpib->pMeasurement()->YTEnergy(true) << endl;
+    cout << hgpib->pMeasurement()->YTMNS_Area(true) << endl;
+    cout << hgpib->pMeasurement()->YTPLS_Area(true) << endl;
+    //hgpib->pMeasurement()->Update();
+    cout << *hgpib->pMeasurement();
+}
+#endif
+#if 0
+static void TestFive(void)
+{
+    hgpib->pMeasurement()->Update();
+    cout << endl;
+    cout << *hgpib->pMeasurement();
+}
+#endif
+#if 0
+static void TestSix(void)
+{
+    cout << "Testing Channel." << endl;
+    //cout << "amplifer offset: " << hgpib->AmpOffset(true) << endl;
+}
+#endif
+static void GetData(void)
+{
+    /*
+     * for the given trace number, return the X and Y point set. 
+     * n contains the number of points in the curve if present. 
+     */
+    double *X, *Y;
+
+    int32_t TraceNumber = 1;
+
+    cout << __FUNCTION__ << " "
+	 << " Get the data for trace: " << TraceNumber << endl;
+    int32_t n = hgpib->Curve(TraceNumber, &X, &Y);
+    cout << "Number points: " << n << endl;
+
+}
 /**
  ******************************************************************
  *
@@ -293,52 +468,20 @@ static bool Initialize(void)
  */
 int main(int argc, char **argv)
 {
-    //int rc;
-    //char *cmd[] = {"cp", "temp.c", "final.c", (char *) 0};
-    time_t now;
-    struct timeval  tv;
-    struct timezone tz;
-    struct tm       *TheTime;
-    clock_t  nowTime, lastTime;
-    struct timespec sleeptime = {1L, 0L};
 
     ProcessCommandLineArgs(argc, argv);
-
+    //struct timespec sleeptime = {1L,000000000};
     if (Initialize())
     {
-#if 0
-        cout << __GNUC__ << endl;
-        rc = execve( "/bin/cp", cmd, NULL);
-        if (rc != 0)
-        {
-            cout << " Failed. " << rc << endl;
-            perror("Failed:");
-        }
-#endif
-        time(&now);
-        TheTime = localtime(&now);
-        cout << "Now: " << now 
-             << " dst:" << TheTime->tm_isdst
-             << " zone:" << TheTime->tm_zone
-             << " gmtoff:" << TheTime->tm_gmtoff
-             << endl; 
-        gettimeofday(&tv,&tz);
-        cout << "Get time of day." << endl;
-        cout << "Minutes west of Greenwich:" << tz.tz_minuteswest
-             << " DSTTIME:" << tz.tz_dsttime 
-             << endl;
-        lastTime = clock();
-	for (int j=0;j<10;j++)
-        {
-            //sleep(1);
-            nanosleep(&sleeptime, NULL);
-            nowTime = clock();
-           //cout << ((long double) (nowTime-lastTime))/CLOCKS_PER_SEC
-           cout << ((long double) (nowTime-lastTime))/55.0
-                 << endl;
-            lastTime = nowTime;
-        }
-        
+	cout << "Version data." << hgpib->Version() << endl;
+	//TestOne();
+	//ParseTest();
+	//TestTwo();
+	//TestThree();
+	//TestFour();
+	//TestFive();
+	//TestSix();
+	GetData();
     }
     Terminate(0);
 }

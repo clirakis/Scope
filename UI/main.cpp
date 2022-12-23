@@ -154,7 +154,7 @@ static bool Initialize(void)
     // ========================================================
     sprintf(msg, "%d.%d",MAJOR_VERSION, MINOR_VERSION);
     double version = atof( msg);
-    logger = new CLogger("oncore.log", "oncore", version);
+    logger = new CLogger("DSA602.log", "DSA602", version);
     logger->SetVerbose(VerboseLevel);
 
     // User initialization goes here.
@@ -190,7 +190,6 @@ static bool Initialize(void)
 int main(int argc, char **argv)
 {
     ProcessCommandLineArgs(argc, argv);
-    //struct timespec sleeptime = {1L,000000000};
 
     theApp = new TApplication("App", &argc, argv);
     gStyle->SetOptStat(1111);

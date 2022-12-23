@@ -1209,28 +1209,31 @@ void SPlot::GetData(void)
     }
 #endif
     SET_DEBUG_STACK;
-    cout << "Get Data: " << n << endl;
 
     /*
      * for the given trace number, return the X and Y point set. 
      * n contains the number of points in the curve if present. 
      */
+#if 0
+    cout << __FUNCTION__ << " "
+	 << " Get the data for trace: " << TraceNumber << endl;
+#endif
     n = scope->Curve(TraceNumber, &X, &Y);
+    //cout << "Number points: " << n << endl;
+
     if (n>0)
     {
 	if (fGraph) delete fGraph;
 	fGraph = new TGraph( n, X, Y);
 	// FIXME
-#if 0
-	fGraph->SetTitle(scope->fWFMPRE->fWFId);
+	//fGraph->SetTitle(scope->fWFMPRE->fWFId);
 	fGraph->Draw("ALP");
-	TH1 *h = fGraph->GetHistogram();
-	if (h)
-	{
-	    h->SetXTitle(scope->fWFMPRE->XAxis());
-	    h->SetYTitle(scope->fWFMPRE->YAxis());
-	}
-#endif
+// 	TH1 *h = fGraph->GetHistogram();
+// 	if (h)
+// 	{
+// 	    h->SetXTitle(scope->fWFMPRE->XAxis());
+// 	    h->SetYTitle(scope->fWFMPRE->YAxis());
+// 	}
 	gPad->Update();
 	free(Y);
 	free(X);

@@ -5,25 +5,8 @@
 #
 #	Modified	by	Reason
 # 	--------	--	------
-#	28-Oct-04       CBL     Original
+#	23-Dec-22       CBL     Original, test DSA602 functions
 #
-# RCS header info.
-# ----------------
-# $RCSfile$
-# $Author$
-# $Date$
-# $Locker$
-# $Name$
-# $Revision$
-#
-# $Log: $
-#
-#
-# Chris Lirakis
-# BBN Technologies
-# 127 John Clarke Rd.
-# Middletown, R.I. 02842
-# (401) - 849 - 2543 
 ######################################################################
 # Machine specific stuff
 #
@@ -32,8 +15,11 @@ TARGET = testme
 #
 # Compile time resolution.
 #
-INCLUDE =  -I$(DRIVE)/common/utility
-LIBS = 
+EXT_CFLAGS = -g
+INCLUDE =  -I$(COMMON)/GPIB -I$(COMMON)/DSA602 -I$(COMMON)/utility \
+	-I/usr/local/include 
+LIBS = -L$(DRIVE)/lib_linux -lDSA602 -lmygpib -lutility -L/usr/local/lib \
+	-lgpib 
 
 # Rules to make the object files depend on the sources.
 SRC     = 
