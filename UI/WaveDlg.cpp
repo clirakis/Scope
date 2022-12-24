@@ -10,10 +10,13 @@
  * Restrictions/Limitations :
  *
  * Change Descriptions :
+ *    24-Dec-22 CBL  Operational. But only for waveform 1. 
  *
  * Classification : Unclassified
  *
  * References :
+ * DSA602 Programmers Reference manual, page: 191
+ * Measurement.hh
  *
  *******************************************************************
  */
@@ -22,12 +25,8 @@ using namespace std;
 
 /// Root Includes
 #include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
 #include <TGButton.h>
-#include <TGTextEntry.h>
-#include <TGMsgBox.h>
 #include <TVirtualX.h>
 
 /// Local Includes.
@@ -56,16 +55,16 @@ using namespace std;
  *
  *******************************************************************
  */
-WaveDlg::WaveDlg(const TGWindow *main, void *p)
+WaveDlg::WaveDlg(const TGWindow *main)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 80)
 {
-    fScope = p;
     SetCleanup(kDeepCleanup);
 
     Connect("CloseWindow()", "WaveDlg", this, "CloseWindow()");
 
     BuildDisplayArea();
     BuildButtonBox();
+    Update();
 
     SetWindowName("Waveform Data");
     SetIconName("WaveForm Data");
@@ -86,6 +85,7 @@ WaveDlg::WaveDlg(const TGWindow *main, void *p)
 
     Move((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
+    Resize();
     MapWindow();
     fClient->WaitFor(this);
 }
@@ -115,10 +115,13 @@ void WaveDlg::BuildButtonBox()
 
     // Create a frame to hold the buttons.
     TGCompositeFrame *ButtonFrame = new
-        TGCompositeFrame(this, 600, 20, kHorizontalFrame);
+        TGCompositeFrame(this, 600, 20, kHorizontalFrame|kSunkenFrame);
 
     TGLayoutHints* fL2 = new
         TGLayoutHints(kLHintsBottom | kLHintsCenterX, 0, 0, 5, 5);
+
+    TGLayoutHints *lh = new TGLayoutHints(
+	kLHintsLeft|kLHintsTop|kLHintsExpandX, 2, 2, 2, 2);
 
     tb = new TGTextButton( ButtonFrame, "  &OK  ");
     tb->Connect("Clicked()", "WaveDlg", this, "DoOK()");
@@ -129,7 +132,7 @@ void WaveDlg::BuildButtonBox()
     ButtonFrame->AddFrame(tb, fL2);
 
     ButtonFrame->Resize();
-    AddFrame(ButtonFrame, new TGLayoutHints(kLHintsExpandX, 2, 2, 2, 2));
+    AddFrame(ButtonFrame, lh);
 }
 /**
  ******************************************************************
@@ -157,7 +160,8 @@ void WaveDlg::BuildDisplayArea()
     //Int_t        row, col;
     TGGroupFrame *gf = new TGGroupFrame( this, "Waveform data", 
                                          kHorizontalFrame);
-
+    TGLayoutHints *lh = new TGLayoutHints(
+	kLHintsLeft|kLHintsTop|kLHintsExpandX|kLHintsExpandY, 2, 2, 2, 2);
     //row = 0;
     //col = 0;
     // Rows, Columns, Interval between frames, hints
@@ -172,19 +176,19 @@ void WaveDlg::BuildDisplayArea()
     // 2
     label = new TGLabel(gf, new TGHotString("Rise time:"));
     gf->AddFrame(label);
-    fRisetime= new TGLabel( gf, TGHotString("0"));
+    fRisetime= new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fRisetime);
 
     // 3
     label = new TGLabel(gf, new TGHotString("Fall time:"));
     gf->AddFrame(label);
-    fFalltime = new TGLabel( gf, TGHotString("0"));
+    fFalltime = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fFalltime);
 
     // 4
     label = new TGLabel(gf, new TGHotString("Frequency:"));
     gf->AddFrame(label);
-    fFrequency = new TGLabel( gf, TGHotString("0Hz"));
+    fFrequency = new TGLabel( gf, TGHotString("         0Hz"));
     gf->AddFrame(fFrequency);
 #if 0
     //
@@ -196,40 +200,41 @@ void WaveDlg::BuildDisplayArea()
     // 5
     label = new TGLabel(gf, new TGHotString("RMS:"));
     gf->AddFrame(label);
-    fRMS = new TGLabel( gf, TGHotString("0"));
+    fRMS = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fRMS);
 
     // 6
     label = new TGLabel(gf, new TGHotString("Gain:"));
     gf->AddFrame(label);
-    fGain = new TGLabel( gf, TGHotString("0"));
+    fGain = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fGain);
 
     // 7
     label = new TGLabel(gf, new TGHotString("Max:"));
     gf->AddFrame(label);
-    fMax = new TGLabel( gf, TGHotString("0"));
+    fMax = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fMax);
 
     // 8
     label = new TGLabel(gf, new TGHotString("Min:"));
     gf->AddFrame(label);
-    fMin = new TGLabel( gf, TGHotString(""));
+    fMin = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fMin);
 
     // 9
     label = new TGLabel(gf, new TGHotString("Mean:"));
     gf->AddFrame(label);
-    fMean = new TGLabel( gf, TGHotString("0"));
+    fMean = new TGLabel( gf, TGHotString("0.000000"));
     gf->AddFrame(fMean);
 
     // 10
     label = new TGLabel(gf, new TGHotString("Mid:"));
     gf->AddFrame(label);
-    fMid = new TGLabel( gf, TGHotString(""));
-    gf->AddFrame(fMid);
+    fMid = new TGLabel( gf, TGHotString("0.000000"));
+    gf->AddFrame(fMid, lh);
+    gf->Resize();
 
-    AddFrame(gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
+    AddFrame(gf, lh);
 }
 /**
  ******************************************************************
@@ -254,7 +259,6 @@ void WaveDlg::BuildDisplayArea()
 void WaveDlg::CloseWindow()
 {
     // Called when closed via window manager action.
-
     delete this;
 }
 /**
@@ -281,23 +285,6 @@ void WaveDlg::CloseWindow()
  */
 void WaveDlg::DoOK()
 {
-#if 0
-    Int_t retval;
-    const char *DisplayError = "Remote Display Error";
-    const char *DisplayErrorMessage = "Please enter the address of the remote display";
-
-    display->Insert(0, fDisplayName->GetText());
-    if (display->IsWhitespace())
-    {
-        new TGMsgBox(fClient->GetRoot(),
-                     this, DisplayError, DisplayErrorMessage,
-                     kMBIconExclamation, kMBOk, &retval);
-        return;
-    }
-
-    displaySet = kTRUE;
-    *result = 0;
-#endif
     SendCloseMessage();
 }
 /**
@@ -352,9 +339,9 @@ void WaveDlg::DoClose()
 /**
  ******************************************************************
  *
- * Function Name : BuildDisplayArea
+ * Function Name : Update
  *
- * Description : Creates the widgets we want to display data in. 
+ * Description : Fill the widgets with data. 
  *
  * Inputs : None
  *
@@ -369,6 +356,40 @@ void WaveDlg::DoClose()
  *
  *******************************************************************
  */
-void WaveDlg::FillDisplayArea()
+void WaveDlg::Update(void)
 {
+    DSA602*      scope = DSA602::GetThis();
+    Measurement *pmeas  = scope->pMeasurement();
+    char s[32];
+
+    // fWaveform  FIXME
+    pmeas->Update();
+
+    sprintf(s, "%g", pmeas->Risetime().Value());
+    fRisetime->SetText(s);
+
+    sprintf(s, "%g", pmeas->Falltime().Value());    
+    fFalltime->SetText(s);
+
+    sprintf(s, "%g", pmeas->Frequency().Value());    
+    fFrequency->SetText(s);
+
+    sprintf(s, "%g", pmeas->RMS().Value());    
+    fRMS->SetText(s);
+
+    sprintf(s, "%g", pmeas->Gain().Value());    
+    fGain->SetText(s);
+
+    sprintf(s, "%g", pmeas->Max().Value());    
+    fMax->SetText(s);
+
+    sprintf(s, "%g", pmeas->Min().Value());    
+    fMin->SetText(s);
+
+    sprintf(s, "%g", pmeas->Mean().Value());    
+    fMean->SetText(s);
+
+    sprintf(s, "%g", pmeas->Midpoint().Value());    
+    fMid->SetText(s);
+
 }

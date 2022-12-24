@@ -441,6 +441,13 @@ static void GetData(void)
     int32_t n = hgpib->Curve(TraceNumber, &X, &Y);
     cout << "Number points: " << n << endl;
 
+    for(int32_t i=0; i<n;i++)
+    {
+	cout << X[i] << "," << Y[i] << endl;
+    }
+    free(X);
+    free(Y);
+
 }
 /**
  ******************************************************************

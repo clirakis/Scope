@@ -649,7 +649,7 @@ void SPlot::HandleMenu(Int_t id)
 	new ModuleDlg( this);
 	break;
     case M_VIEW_WAVEFORM:
-	new WaveDlg( this, fScope);
+	new WaveDlg( this);
 	break;
     case M_VIEW_FFT:
 	new FFTDlg( this);
@@ -1325,7 +1325,7 @@ void SPlot::UpdateTraceButtons(void)
     
     // How many traces are there to inquire on? 
     Int_t n = trace->GetNTrace();
-    cout << __FUNCTION__ << " " << n << endl;
+    //cout << __FUNCTION__ << " " << n << endl;
     for (Int_t i=0;i<8;i++)
     {
 	if (i < n) 

@@ -19,8 +19,6 @@
  */
 #ifndef __WAVEDLG_hh_
 #define __WAVEDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
 #    include <RQ_OBJECT.h>
 
 class TGLabel;
@@ -30,24 +28,25 @@ class WaveDlg : public TGTransientFrame
     ClassDef(WaveDlg, 0);
 public:
     /// Constructor
-    WaveDlg (const TGWindow *parent, void *p);
+    WaveDlg (const TGWindow *parent);
 
     /// Close the window
-    void   CloseWindow();
+    void   CloseWindow(void);
     /// User pressed the OK button, end the dialog
     void   DoOK();
     /// User pressed the Cancel button, end the dialog
-    void   DoCancel();
+    void   DoCancel(void);
     /// Close the window
-    void   DoClose();
+    void   DoClose(void);
 
 private:
     /// Build the Ok and Cancel Buttons
-    void BuildButtonBox();
+    void BuildButtonBox(void);
     /// 
-    void BuildDisplayArea();
-    void FillDisplayArea();
-    void    *fScope;
+    void BuildDisplayArea(void);
+
+    void Update(void);
+
     TGLabel *fWaveform, *fRisetime;
     TGLabel *fFalltime, *fFrequency, *fRMS, *fGain, *fMax, *fMin, *fMean;
     TGLabel *fMid;
