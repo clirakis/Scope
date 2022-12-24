@@ -188,7 +188,10 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) :
     fGraph       = NULL;
     fZoomLevel   = 2;
 
-    // Finally create scope object
+    /*
+     * Finally create scope object
+     * Pass in GPIB address. 
+     */
     fScope = (void *) new DSA602( Scope_GPIB_A);
     UpdateTraceButtons();
 }
@@ -275,7 +278,7 @@ void SPlot::AddControls(void)
 	/*
 	 * Add the radio button with a trace number given by i. 
 	 */
-	fTrace[i] = new TGRadioButton(gf, title, i);
+	fTrace[i] = new TGRadioButton(gf, title, i+1);
 	fTrace[i]->Connect( "Clicked()", "SPlot", this, "SetTrace()");
 	gf->AddFrame(fTrace[i]);
     }
@@ -1186,7 +1189,6 @@ void SPlot::GetData(void)
     DSA602* scope = (DSA602*) fScope;
     Int_t retval;
 
-    Int_t n           = 0;
     Int_t TraceNumber = 0;
 
 #if 0
@@ -1214,26 +1216,19 @@ void SPlot::GetData(void)
      * for the given trace number, return the X and Y point set. 
      * n contains the number of points in the curve if present. 
      */
-#if 0
-    cout << __FUNCTION__ << " "
-	 << " Get the data for trace: " << TraceNumber << endl;
-#endif
-    n = scope->Curve(TraceNumber, &X, &Y);
-    //cout << "Number points: " << n << endl;
-
+    Int_t n = scope->Curve(TraceNumber, &X, &Y);
     if (n>0)
     {
 	if (fGraph) delete fGraph;
 	fGraph = new TGraph( n, X, Y);
-	// FIXME
-	//fGraph->SetTitle(scope->fWFMPRE->fWFId);
+	fGraph->SetTitle(scope->GetWFMPRE()->WaveformID().c_str());
 	fGraph->Draw("ALP");
-// 	TH1 *h = fGraph->GetHistogram();
-// 	if (h)
-// 	{
-// 	    h->SetXTitle(scope->fWFMPRE->XAxis());
-// 	    h->SetYTitle(scope->fWFMPRE->YAxis());
-// 	}
+	TH1 *h = fGraph->GetHistogram();
+	if (h)
+	{
+	    h->SetXTitle(scope->GetWFMPRE()->XAxis());
+	    h->SetYTitle(scope->GetWFMPRE()->YAxis());
+	}
 	gPad->Update();
 	free(Y);
 	free(X);
@@ -1271,7 +1266,7 @@ void SPlot::SetTrace(void)
 {
     SET_DEBUG_STACK;
     DSA602* scope = (DSA602*) fScope;
-    Int_t   i;
+
     /*
      * Which button sent us this message? We need the id as an index. 
      */
@@ -1325,20 +1320,30 @@ void SPlot::SetTrace(void)
 void SPlot::UpdateTraceButtons(void)
 {
     DSA602* scope = (DSA602*) fScope;
-    int i;
-    // FIXME!
-    return;
-    for (i=0;i<8;i++)
+    Trace*  trace = scope->GetTrace();
+    Bool_t first  = kTRUE;
+    
+    // How many traces are there to inquire on? 
+    Int_t n = trace->GetNTrace();
+    cout << __FUNCTION__ << " " << n << endl;
+    for (Int_t i=0;i<8;i++)
     {
-
-	if (scope->GetDisplayTrace(i))
+	if (i < n) 
 	{
-	    //fTrace[i]->SetState(kButtonDown, kFALSE);
-	    cout << "Scope says, get trace: " << i << endl;
+	    fTrace[i]->SetEnabled(kTRUE);
+	    if (first)
+	    {
+		fTrace[i]->SetState(kButtonDown);
+		first = kFALSE;
+	    }
+	    else
+	    {
+		fTrace[i]->SetState(kButtonUp);
+	    }
 	}
-// 	else
-// 	{
-// 	    fTrace[i]->SetState(kButtonUp, kFALSE);
-// 	}
+ 	else
+	{
+	    fTrace[i]->SetEnabled(kFALSE);
+	}
     }
 }
