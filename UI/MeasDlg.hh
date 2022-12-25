@@ -19,10 +19,7 @@
  */
 #ifndef __MEASDLG_hh_
 #define __MEASDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
 #    include <RQ_OBJECT.h>
-
 class MSLIST;
 class TGLabel;
 class TGCheckButton;
@@ -30,10 +27,12 @@ class TGCheckButton;
 class MeasDlg : public TGTransientFrame
 {
     ClassDef(MeasDlg, 0);
+
 public:
     /// Constructor
     MeasDlg (const TGWindow *parent);
     ~MeasDlg ();
+    static const UInt_t   kMaxReadout = 6;
     
     // SLOTS
     /// Close the window
@@ -45,22 +44,26 @@ public:
     /// Close the window
     void   DoClose();
     void   DoApply();
+    void   ButtonChecked();
 
 private:
     /// Build the Ok and Cancel Buttons
     void BuildButtonBox();
     /// 
-    void BuildDisplayArea();
+    void BuildUserArea();
+
     void ReadState();
     void ReadValue();
     void CreateLabels();
     void Clear();
 
     // private variables
-    void*          fScope;
     MSLIST*        fMeas;
-    TGLabel*       fLabel[6];   // Only 6 measurements are available. 
-    TGLabel*       fData[6];
+    TGLabel*       fTrace;      // Label of trace on display.
+ 
+    // Only 6 measurements are available. 
+    TGLabel*       fLabel[kMaxReadout];     // Labels and Data can be NULL. 
+    TGLabel*       fData[kMaxReadout];
     TGCheckButton* fCB[26];
 };
 

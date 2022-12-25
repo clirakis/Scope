@@ -5,7 +5,7 @@
  *
  * Author/Date : C.B. Lirakis / 26-Jan-14
  *
- * Description : MSLIST, waveform prefix data. 
+ * Description : MSLIST - A list of all possible measurement values. 
  *
  * Restrictions/Limitations :
  *
@@ -24,16 +24,20 @@
 class TList;
 class TString;
 
-// FIXME -- WHAT IS THIS?
+/*!
+ * Keep track of all of the possible measurements we can make
+ * off a waveform. Class MeasurementA stores on element of this list
+ * and allows the user to manipulate the data in the list.
+ */
 class MeasurementA : public TObject {
 public:
     MeasurementA(const char *l);
     ~MeasurementA();
     const char *Text(void) const;
     bool Match(const char *l);
-    inline void     SetState(Bool_t s) {fEnabled = s;};
-    inline Bool_t   State() const {return fEnabled;};
-    inline Double_t Value(void) {return fValue;};
+    inline void     SetState(Bool_t s)     {fEnabled = s;};
+    inline Bool_t   State() const          {return fEnabled;};
+    inline Double_t Value(void)            {return fValue;};
     inline void     SetValue(double value) {fValue = value;};
     friend ostream& operator<<(ostream& output, const MeasurementA &n); 
 
@@ -43,6 +47,10 @@ private:
     Bool_t         fEnabled;
 };
 
+/*!
+ * This is the actual List of the available measurements. 
+ * It will initialize on calling. 
+ */
 class MSLIST {
 public:
     MSLIST();

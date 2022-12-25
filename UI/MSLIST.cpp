@@ -4,7 +4,8 @@
  *
  * Author/Date : C.B. Lirakis / 01-Feb-11
  *
- * Description : Generic module
+ * Description : MSLIST manages all the possible measurements that
+ * can be made for the UI. 
  *
  * Restrictions/Limitations :
  *
@@ -16,7 +17,6 @@
  *
  ********************************************************************/
 // System includes.
-
 #include <iostream>
 using namespace std;
 #include <string>
@@ -26,21 +26,28 @@ using namespace std;
 #include <arpa/inet.h>
 
 // Root includes
-#include "TGLabel.h"
-#include "TGButton.h"
+//#include "TGLabel.h"
+//#include "TGButton.h"
 #include "TList.h"
 #include "TString.h"
 #include "TPRegexp.h"
 
 // Local Includes.
+#include "debug.h"
+#include "Measurement.hh"
 #include "MSLIST.hh"
 #include "GParse.hh"
-const char *Available[] = {"GAIN", "MAX", "MEAN", "MID","OVERSHOOT","PP",
-			   "RMS","UNDERSHOOT", "YTENERGY", "YTMNS_AREA",
-			   "YTPLS_AREA","SFREQ","SMAG","THD",
-			   "CROSS", "DELAY", "DUTY", "FALLTIME", "FREQ",
-			   "PDELAY","PERIOD","PHASE","RISETIME", "SKEW",
-			   "TTRIG","WIDTH", NULL};
+
+/*
+ * List of avaible things to set and or read on any waveform. 
+ * Add +1 to be NULL terminated. 
+ */
+const char *Available[Measurement::kNMeasurements+1] = {
+    "GAIN", "MAX", "MEAN", "MID", "MIN", "OVERSHOOT","PP", "RMS","UNDERSHOOT",
+    "YTENERGY", "YTMNS_AREA", "YTPLS_AREA",
+    "SFREQ","SMAG","THD",
+    "CROSS", "DELAY", "DUTY", "FALLTIME", "FREQ", "PDELAY","PERIOD",
+    "PHASE","RISETIME", "SKEW", "TTRIG","WIDTH", NULL};
 /**
  ******************************************************************
  *
@@ -63,9 +70,11 @@ const char *Available[] = {"GAIN", "MAX", "MEAN", "MID","OVERSHOOT","PP",
  */
 MeasurementA::MeasurementA(const char *l)
 {
+    SET_DEBUG_STACK;
     fMeas    = new TString(l);
     fValue   = 0.0;
     fEnabled = kFALSE;
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -89,9 +98,11 @@ MeasurementA::MeasurementA(const char *l)
  */
 MeasurementA::~MeasurementA()
 {
-    cout << "Delete: " << endl;
-    cout << *fMeas << endl;
+    SET_DEBUG_STACK;
+//     cout << __FUNCTION__ << " Delete: " << endl;
+//     cout << *fMeas << endl;
     delete fMeas; fMeas = NULL;
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -115,9 +126,10 @@ MeasurementA::~MeasurementA()
  */
 const char *MeasurementA::Text(void) const
 {
+    SET_DEBUG_STACK;
     if (fMeas)
 	return fMeas->Data();
-
+    SET_DEBUG_STACK;
     return NULL;
 }
 /**
@@ -142,19 +154,23 @@ const char *MeasurementA::Text(void) const
  */
 bool MeasurementA::Match(const char *name)
 {
+    SET_DEBUG_STACK;
     if(fMeas->CompareTo(name, TString::kIgnoreCase) == 0)
     {
 	return true;
     }
+    SET_DEBUG_STACK;
     return false;
 }
 
 ostream& operator<<(ostream& output, const MeasurementA &n)
 {
+    SET_DEBUG_STACK;
     output << n.Text();
     if(n.State())
 	output << " Check";
     output << " ,";
+    SET_DEBUG_STACK;
     return output;
 }
 
@@ -179,11 +195,13 @@ ostream& operator<<(ostream& output, const MeasurementA &n)
  *
  *******************************************************************
  */
-MSLIST::MSLIST()
+MSLIST::MSLIST(void)
 {
+    SET_DEBUG_STACK;
     fMeasurements = new TList();
     fMeasurements->SetOwner();
     Init();
+    SET_DEBUG_STACK;
 }
 
 /**
@@ -208,32 +226,26 @@ MSLIST::MSLIST()
  */
 MSLIST::~MSLIST()
 {
+    SET_DEBUG_STACK;
     delete fMeasurements;
     fMeasurements = NULL;
-    cout << "MSLIST deleted." << endl;
-}
-ostream& operator<<(ostream& output, const MSLIST &n)
-{
-    MeasurementA *p;
-    TListIter next(n.fMeasurements);
-
-    while ((p = (MeasurementA *)next()))
-    {
-	output << *p;
-    }
-    return output;
+    cout << __FUNCTION__ << " MSLIST deleted." << endl;
+    SET_DEBUG_STACK;
 }
 
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : MSLIST output stream formatter
  *
  * Description :
  *
  * Inputs :
+ *    output - output stream to fill
+ *    n - MSLIST elements
  *
- * Returns :
+ * Returns : 
+ *    fully populated output stream
  *
  * Error Conditions :
  * 
@@ -244,8 +256,45 @@ ostream& operator<<(ostream& output, const MSLIST &n)
  *
  *******************************************************************
  */
-void MSLIST::Init()
+ostream& operator<<(ostream& output, const MSLIST &n)
 {
+    SET_DEBUG_STACK;
+    MeasurementA *p;
+    TListIter next(n.fMeasurements);
+
+    while ((p = (MeasurementA *)next()))
+    {
+	output << *p;
+    }
+    SET_DEBUG_STACK;
+    return output;
+}
+
+/**
+ ******************************************************************
+ *
+ * Function Name : Init
+ *
+ * Description : Initialze the list will all the available names 
+ * that can be selected for measurement. Note, that not all of those
+ * are applicable for every case. 
+ *
+ * Inputs : none
+ *
+ * Returns : none
+ *
+ * Error Conditions :
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void MSLIST::Init(void)
+{
+    SET_DEBUG_STACK;
     MeasurementA* m;
     const char*  p;
     int          i = 0;
@@ -257,6 +306,7 @@ void MSLIST::Init()
 	i++;
     }
     // List is made, populate
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -280,6 +330,7 @@ void MSLIST::Init()
  */
 void MSLIST::FillState(const char *s)
 {
+    SET_DEBUG_STACK;
     const char tokens[] = "[,]";
     MeasurementA *m;
     TString     input(s);
@@ -299,7 +350,7 @@ void MSLIST::FillState(const char *s)
 	    }
 	}
     }
-
+    SET_DEBUG_STACK;
 }
 
 /**
@@ -324,6 +375,7 @@ void MSLIST::FillState(const char *s)
  */
 void MSLIST::FillValue(const char *s)
 {
+    SET_DEBUG_STACK;
     // GPARSE will not work here
     // There is a second value that is returned
     // EQ True measurement equals value
@@ -344,6 +396,7 @@ void MSLIST::FillValue(const char *s)
 	    p->SetValue(atof(gp.Value(p->Text())));
 	}
     }
+    SET_DEBUG_STACK;
 }
 
 
@@ -369,6 +422,7 @@ void MSLIST::FillValue(const char *s)
  */
 MeasurementA*  MSLIST::Find(const char *v)
 {
+    SET_DEBUG_STACK;
     MeasurementA *p;
     TListIter next(fMeasurements);
     while ((p = (MeasurementA *)next()))
@@ -376,6 +430,7 @@ MeasurementA*  MSLIST::Find(const char *v)
 	if (p->Match(v))
 	    return p;
     }
+    SET_DEBUG_STACK;
     return NULL;
 }
 /**
@@ -398,12 +453,14 @@ MeasurementA*  MSLIST::Find(const char *v)
  *
  *******************************************************************
  */
-void MSLIST::Clear()
+void MSLIST::Clear(void)
 {
+    SET_DEBUG_STACK;
     MeasurementA *p;
     TListIter next(fMeasurements);
     while ((p = (MeasurementA *)next()))
     {
 	p->SetState(kFALSE);
     }
+    SET_DEBUG_STACK;
 }
