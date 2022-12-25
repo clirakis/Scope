@@ -53,9 +53,8 @@ private:
     void BuildUserArea();
 
     void ReadState();
-    void ReadValue();
-    void CreateLabels();
     void Clear();
+    void Update();
 
     // private variables
     MSLIST*        fMeas;

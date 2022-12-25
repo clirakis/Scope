@@ -75,6 +75,8 @@ MeasDlg::MeasDlg(const TGWindow *main)
 
     BuildUserArea();
     BuildButtonBox();
+    ReadState();
+    Update();
 
     SetWindowName("Waveform Data");
     SetIconName("WaveForm Data");
@@ -82,8 +84,6 @@ MeasDlg::MeasDlg(const TGWindow *main)
     MapSubwindows();
     // Read the state of the measurement list. 
     // This will populate the CB list etc. 
-    ReadState();
-    ReadValue();
 
     Resize();
 
@@ -214,7 +214,6 @@ void MeasDlg::BuildUserArea(void)
     fTrace = new TGLabel(vf, new TGHotString("Trace: 1"));
     vf->AddFrame(fTrace, vl);
 
-
     TGHorizontalFrame *hf = new TGHorizontalFrame( vf, 200, 400);
     vf->AddFrame( hf, vl);
 
@@ -283,8 +282,6 @@ void MeasDlg::BuildUserArea(void)
     SET_DEBUG_STACK;
 }
 
-
-
 /**
  ******************************************************************
  *
@@ -335,7 +332,7 @@ void MeasDlg::CloseWindow()
  *
  *******************************************************************
  */
-void MeasDlg::DoOK()
+void MeasDlg::DoOK(void)
 {
 #if 0
     Int_t retval;
@@ -350,7 +347,6 @@ void MeasDlg::DoOK()
                      kMBIconExclamation, kMBOk, &retval);
         return;
     }
-
     displaySet = kTRUE;
     *result = 0;
 #endif
@@ -377,7 +373,7 @@ void MeasDlg::DoOK()
  *
  *******************************************************************
  */
-void MeasDlg::DoCancel()
+void MeasDlg::DoCancel(void)
 {
     SET_DEBUG_STACK;
     SendCloseMessage();
@@ -484,9 +480,10 @@ void MeasDlg::ButtonChecked(void)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : ReadState
  *
- * Description : Creates the widgets we want to display data in. 
+ * Description : For the checkboxes, which measurements are currently 
+ *               active?
  *
  * Inputs : None
  *
@@ -496,7 +493,7 @@ void MeasDlg::ButtonChecked(void)
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -504,66 +501,33 @@ void MeasDlg::ButtonChecked(void)
 void MeasDlg::ReadState(void)
 {
     SET_DEBUG_STACK;
-    DSA602* p = DSA602::GetThis();
-    char msg[256];
-#if 0
-    p->Command("MSLIST?", msg, sizeof(msg));
-    fMeas->FillState(msg);
-    //cout << *fMeas << endl;
-    // After read state, we then know what items we can interrogate. 
-    CreateLabels();
-#endif
+    DSA602* scope = DSA602::GetThis();
+    Measurement *pmeas  = scope->pMeasurement();
+    TList*           lm = fMeas->GetList();
+    MeasurementA*     p;
+    UInt_t i;
+
+    // First turn all the checkboxes off. 
+    for (i=0;i<Measurement::kNMeasurements;i++)
+    {
+	fCB[i]->SetState(kButtonUp);
+	p = (MeasurementA *)lm->At(i);
+	p->SetState(false);
+    }
+
+    // How many active items in the list. 
+    UInt_t N = pmeas->ActiveList();
+    Int_t index = 0;
+    // Loop over them and retrived the ids. 
+    for (i=0;i<N;i++)
+    {
+	index = pmeas->ActiveIndex(i);
+	fCB[index]->SetState(kButtonDown);
+	p = (MeasurementA *)lm->At(index);
+	p->SetState(true);    }
     SET_DEBUG_STACK;
 }
-/**
- ******************************************************************
- *
- * Function Name : 
- *
- * Description : Creates the widgets we want to display data in. 
- *
- * Inputs : None
- *
- * Returns : None
- *
- * Error Conditions :
- *
- * Unit Tested on:
- *
- * Unit Tested by:
- *
- *
- *******************************************************************
- */
-void MeasDlg::ReadValue()
-{
-    DSA602*  p = DSA602::GetThis();
-    char     msg[256];
-    Int_t    i;
-    Double_t val;
-    const char*    s;
 
-#if 0
-    p->Command("MEAS?", msg, sizeof(msg));
-    fMeas->FillValue(msg);
-    cout << "Measurement: " << msg << endl;
-
-    // After read state, Populate values
-    for (i=0;i<6;i++)
-    {
-	const TGString *tgs = fLabel[i]->GetText();
-
-	if (tgs->CompareTo("NULL") > 0)
-	{
-	    s = tgs->Data();
-	    //cout << "Label:" << s << " " << *fMeas->Find(s) << endl;
-	    val = fMeas->Find(s)->Value();
-	    sprintf(msg,"%10.2g", val);
-	    fData[i]->SetText(msg);
-	}
-    }
-#endif
-}
 /**
  ******************************************************************
  *
@@ -590,45 +554,7 @@ void MeasDlg::DoApply()
     cout << "Apply not yet populated." << endl;
 }
 
-/**
- ******************************************************************
- *
- * Function Name : 
- *
- * Description :
- *
- * Inputs :
- *
- * Returns :
- *
- * Error Conditions :
- * 
- * Unit Tested on: 
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-void MeasDlg::CreateLabels(void)
-{
-    MeasurementA* p;
-    TListIter    next(fMeas->GetList());
-    Int_t        i, j;
 
-    Clear();
-    i = j = 0;
-    while ((p = (MeasurementA *)next()))
-    {
-	if (p->State())
-	{
-	    fCB[i]->SetState(kButtonDown);
-	    fLabel[j]->SetText(p->Text());
-	    j++;
-	}
-	i++;
-    }
-}
 /**
  ******************************************************************
  *
@@ -636,13 +562,13 @@ void MeasDlg::CreateLabels(void)
  *
  * Description : For all the labels and checkboxes turn them off. 
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 25-Dec-22
  *
  * Unit Tested by: CBL
  *
@@ -661,4 +587,74 @@ void MeasDlg::Clear(void)
     {
 	fCB[i]->SetState(kButtonUp);
     }
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : Update
+ *
+ * Description : Fill the widgets with data. 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
+void MeasDlg::Update(void)
+{
+    DSA602*       scope = DSA602::GetThis();
+    Measurement*  pmeas  = scope->pMeasurement();
+    MeasurementA* p;
+
+    // Query the data. 
+    pmeas->Update();
+
+    // Loop over the known values and query the ones that are active
+    TListIter next(fMeas->GetList());
+    UInt_t id = 0;
+    while ((p = (MeasurementA *)next()))
+    {
+	// Get the data on those that are enabled. 
+	if (p->State())
+	{
+	    cout << "MeasDlg::Update FIXME!!!" << endl;
+	}
+	id++;
+    }
+#if 0
+    sprintf(s, "%g", pmeas->Risetime().Value());
+    fRisetime->SetText(s);
+
+    sprintf(s, "%g", pmeas->Falltime().Value());    
+    fFalltime->SetText(s);
+
+    sprintf(s, "%g", pmeas->Frequency().Value());    
+    fFrequency->SetText(s);
+
+    sprintf(s, "%g", pmeas->RMS().Value());    
+    fRMS->SetText(s);
+
+    sprintf(s, "%g", pmeas->Gain().Value());    
+    fGain->SetText(s);
+
+    sprintf(s, "%g", pmeas->Max().Value());    
+    fMax->SetText(s);
+
+    sprintf(s, "%g", pmeas->Min().Value());    
+    fMin->SetText(s);
+
+    sprintf(s, "%g", pmeas->Mean().Value());    
+    fMean->SetText(s);
+
+    sprintf(s, "%g", pmeas->Midpoint().Value());    
+    fMid->SetText(s);
+#endif
 }

@@ -426,6 +426,7 @@ static void TestSix(void)
     //cout << "amplifer offset: " << hgpib->AmpOffset(true) << endl;
 }
 #endif
+#if 0
 static void GetData(void)
 {
     /*
@@ -448,6 +449,17 @@ static void GetData(void)
     free(X);
     free(Y);
 
+}
+#endif
+static void TestMeasurement(void)
+{
+    Measurement *pmeas  = hgpib->pMeasurement();
+    char s[32];
+    logger->SetVerbose(2);
+
+    pmeas->Update();
+    pmeas->NList();
+    pmeas->ActiveList();
 }
 /**
  ******************************************************************
@@ -488,7 +500,8 @@ int main(int argc, char **argv)
 	//TestFour();
 	//TestFive();
 	//TestSix();
-	GetData();
+	//GetData();
+	TestMeasurement();
     }
     Terminate(0);
 }
