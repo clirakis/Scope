@@ -662,7 +662,6 @@ void SPlot::HandleMenu(Int_t id)
     case M_TRACE_ADD:
 	break;
     case M_VIEW_MEASUREMENT:
-	cout << "Measurement." << endl;
 	new MeasDlg( this);
 	break;
     case M_HELP_ABOUT:

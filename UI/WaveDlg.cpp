@@ -361,7 +361,7 @@ void WaveDlg::Update(void)
     DSA602*      scope = DSA602::GetThis();
     Measurement *pmeas  = scope->pMeasurement();
     char s[32];
-
+#if 0
     // fWaveform  FIXME
     pmeas->Update();
 
@@ -391,5 +391,7 @@ void WaveDlg::Update(void)
 
     sprintf(s, "%g", pmeas->Midpoint().Value());    
     fMid->SetText(s);
+#endif
+    SET_DEBUG_STACK;
 
 }

@@ -380,6 +380,7 @@ static void TestThree(void)
 static void TestFour(void)
 {
     //cout << *hgpib << endl;
+#if 0
     cout << hgpib->pMeasurement()->Cross(true) << endl;
     cout << hgpib->pMeasurement()->Delay(true) << endl;
     cout << hgpib->pMeasurement()->Duty(true) << endl;
@@ -407,8 +408,10 @@ static void TestFour(void)
     cout << hgpib->pMeasurement()->YTEnergy(true) << endl;
     cout << hgpib->pMeasurement()->YTMNS_Area(true) << endl;
     cout << hgpib->pMeasurement()->YTPLS_Area(true) << endl;
-    //hgpib->pMeasurement()->Update();
+#else
+    hgpib->pMeasurement()->Update();
     cout << *hgpib->pMeasurement();
+#endif
 }
 #endif
 #if 0
@@ -457,9 +460,12 @@ static void TestMeasurement(void)
     char s[32];
     logger->SetVerbose(2);
 
+    cout << "Test Measurement." << endl;
+
     pmeas->Update();
     pmeas->NList();
     pmeas->ActiveList();
+    cout << "And the results are: " << endl << *pmeas;
 }
 /**
  ******************************************************************

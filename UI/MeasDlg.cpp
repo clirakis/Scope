@@ -35,7 +35,6 @@ using namespace std;
 #include "debug.h"
 #include "MeasDlg.hh"
 #include "Measurement.hh"
-#include "MSLIST.hh"
 #include "DSA602.hh"
 
 /**
@@ -63,11 +62,6 @@ MeasDlg::MeasDlg(const TGWindow *main)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 80)
 {
     SET_DEBUG_STACK;
-
-    /* 
-     * Setup a list for potential measurements. 
-     */
-    fMeas  = new MSLIST;
 
     SetCleanup(kDeepCleanup);
 
@@ -107,17 +101,17 @@ MeasDlg::MeasDlg(const TGWindow *main)
 /**
  ******************************************************************
  *
- * Function Name : Clear
+ * Function Name : MeasDlg Destructor
  *
- * Description : For all the labels and checkboxes turn them off. 
+ * Description : Clean up after ourselves
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 25-Dec-22
  *
  * Unit Tested by: CBL
  *
@@ -127,8 +121,7 @@ MeasDlg::MeasDlg(const TGWindow *main)
 MeasDlg::~MeasDlg(void)
 {
     SET_DEBUG_STACK;
-    delete fMeas;
-    fMeas = NULL;
+
     SET_DEBUG_STACK;
 }
 /**
@@ -163,12 +156,12 @@ void MeasDlg::BuildButtonBox(void)
     TGLayoutHints* fL2 = new
         TGLayoutHints(kLHintsBottom | kLHintsCenterX, 0, 0, 5, 5);
 
-    tb = new TGTextButton( ButtonFrame, "  &OK  ");
-    tb->Connect("Clicked()", "MeasDlg", this, "DoOK()");
+    tb = new TGTextButton( ButtonFrame, "  &Read  ");
+    tb->Connect("Clicked()", "MeasDlg", this, "DoRead()");
     ButtonFrame->AddFrame(tb, fL2);
 
-    tb = new TGTextButton( ButtonFrame, "  &Cancel  ");
-    tb->Connect("Clicked()", "MeasDlg", this, "DoCancel()");
+    tb = new TGTextButton( ButtonFrame, "  &Done  ");
+    tb->Connect("Clicked()", "MeasDlg", this, "DoDone()");
     ButtonFrame->AddFrame(tb, fL2);
 
     ButtonFrame->Resize();
@@ -199,8 +192,8 @@ void MeasDlg::BuildButtonBox(void)
 void MeasDlg::BuildUserArea(void)
 {
     SET_DEBUG_STACK;
-    MeasurementA*  p;
-    TGTextButton*  tb;
+    DSA602*     scope = DSA602::GetThis();
+    Measurement *meas = scope->pMeasurement();
 
     // Put all of this into a really big Vertical Frame. 
     TGVerticalFrame *vf = new TGVerticalFrame(this, 200, 400);
@@ -225,9 +218,10 @@ void MeasDlg::BuildUserArea(void)
     /*
      * Make this parametric on the number of columns. 
      */
-    Int_t n = fMeas->Length();
-    Int_t ncols = 4;
-    Int_t nrows = n/ncols;
+    UInt_t n = Measurement::kNMeasurements;
+    UInt_t ncols = 4;
+    UInt_t nrows = n/ncols;
+    const char *name;
     if (n%2>0) nrows++;
 
     /*
@@ -240,20 +234,20 @@ void MeasDlg::BuildUserArea(void)
     gf->SetLayoutManager(new TGMatrixLayout( gf, nrows, ncols+1, 2, 2));
 
     // Add all the checkbuttons.
-    TListIter next(fMeas->GetList());
-    UInt_t i = 0;
-    while ((p = (MeasurementA *)next()))
+    for(uint8_t i=0; i<Measurement::kNMeasurements; i++)
     {
-	fCB[i] = new TGCheckButton( gf, new TGHotString(p->Text()), i);
+	name = meas->GetByIndex((Measurement::MTYPES)i)->Text();
+	fCB[i] = new TGCheckButton( gf, new TGHotString(name), i);
 	fCB[i]->Connect("Clicked()", "MeasDlg", this, "ButtonChecked()");
 	gf->AddFrame(fCB[i]);
-	i++;
     }
 
+#if 0 // DON'T need this. 
     // Add an apply button as the last thing
     tb = new TGTextButton( gf, "  &Apply  ");
     tb->Connect("Clicked()", "MeasDlg", this, "DoApply()");
     gf->AddFrame(tb);
+#endif
     hf->AddFrame(gf, vlx);
 
 
@@ -265,10 +259,12 @@ void MeasDlg::BuildUserArea(void)
      */
     // Create measurement group frame. 
     TGGroupFrame* Labels = new TGGroupFrame( hf, "Values:",kHorizontalFrame);
-    Labels->SetLayoutManager(new TGMatrixLayout(Labels, kMaxReadout, 2, 10, 2));
+    Labels->SetLayoutManager(new TGMatrixLayout(Labels, 
+						Measurement::kMaxReadout, 
+						2, 10, 2));
     hf->AddFrame(Labels, vl);
     // Create the Labels for the activated data to readout. 
-    for (UInt_t i=0;i<MeasDlg::kMaxReadout;i++)
+    for (UInt_t i=0;i<Measurement::kMaxReadout;i++)
     {
 	fLabel[i] = new TGLabel( Labels, "NONE            ");
 	Labels->AddFrame(fLabel[i]);
@@ -306,18 +302,16 @@ void MeasDlg::CloseWindow()
 {
     SET_DEBUG_STACK;
     // Called when closed via window manager action.
-    cout << "Close window." << endl;
     delete this;
     SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : DoOK
+ * Function Name : DoRead
  *
- * Description : User pressed the OK button -
- *               Set the user-provided storage to the new minimum
- *               and maximum and close the window
+ * Description : User pressed the Read button -
+ *               Read and display a new set of data. 
  *
  * Inputs : None
  *
@@ -332,31 +326,15 @@ void MeasDlg::CloseWindow()
  *
  *******************************************************************
  */
-void MeasDlg::DoOK(void)
+void MeasDlg::DoRead(void)
 {
-#if 0
-    Int_t retval;
-    const char *DisplayError = "Remote Display Error";
-    const char *DisplayErrorMessage = "Please enter the address of the remote display";
-
-    display->Insert(0, fDisplayName->GetText());
-    if (display->IsWhitespace())
-    {
-        new TGMsgBox(fClient->GetRoot(),
-                     this, DisplayError, DisplayErrorMessage,
-                     kMBIconExclamation, kMBOk, &retval);
-        return;
-    }
-    displaySet = kTRUE;
-    *result = 0;
-#endif
-    SendCloseMessage();
     SET_DEBUG_STACK;
+    Update();
 }
 /**
  ******************************************************************
  *
- * Function Name : DoCancel
+ * Function Name : DoDone
  *
  * Description : Close the window
  *
@@ -373,7 +351,7 @@ void MeasDlg::DoOK(void)
  *
  *******************************************************************
  */
-void MeasDlg::DoCancel(void)
+void MeasDlg::DoDone(void)
 {
     SET_DEBUG_STACK;
     SendCloseMessage();
@@ -427,6 +405,8 @@ void MeasDlg::DoClose(void)
 void MeasDlg::ButtonChecked(void)
 {
     SET_DEBUG_STACK;
+    DSA602*     scope = DSA602::GetThis();
+    Measurement *meas = scope->pMeasurement();
     /*
      * Which button sent us this message? We need the id as an index. 
      */
@@ -434,46 +414,36 @@ void MeasDlg::ButtonChecked(void)
     Int_t     id  = btn->WidgetId();
     // Check the stat of the button. 
     Bool_t status = fCB[id]->IsOn();
-    TList*     lm = fMeas->GetList();
-    MeasurementA* p;
 
-
-    // FIXME --- Need to actually do something now. 
+    /*
+     * If I have done things right, then the id of the button 
+     * should be the same as the request to be made in measurement.hh
+     * Therefore we can use those functions to do the right thing. 
+     */
     if (status)
     {
 	/*
 	 * If it is on, set another measurement, but check total first. 
 	 * before we react, lets check the number of buttons checked. 
+	 *
+	 * SetActive will return true if all conditions are met. 
 	 */
-	TListIter     next(lm);
-	UInt_t n = 0;  // initialize count to zero. 
-	while ((p = (MeasurementA *)next()))
-	{
-	    if (p->State())
-	    {
-		n++;
-	    }
-	}
-	p = (MeasurementA *)lm->At(id);
-	if (n<kMaxReadout)
+	if (meas->SetActive((Measurement::MTYPES)id))
 	{
 	    // Its ok, set the checkbox. 
-	    //fCB[id]->SetState(kButtonDown); 
-	    p->SetState(true);
+	    fCB[id]->SetState(kButtonDown); 
 	}
 	else
 	{
 	    fCB[id]->SetState(kButtonUp);
-	    p->SetState(false);
 	}
     }
     else
     {
-	//fCB[id]->SetState(kButtonDown);
-	p = (MeasurementA *)lm->At(id);
-	p->SetState(false);
+	fCB[id]->SetState(kButtonUp);
+	// Now remove this ID from the list. 
+	meas->SetInactive((Measurement::MTYPES)id);
     }
-
     SET_DEBUG_STACK;
 }
 
@@ -501,18 +471,14 @@ void MeasDlg::ButtonChecked(void)
 void MeasDlg::ReadState(void)
 {
     SET_DEBUG_STACK;
-    DSA602* scope = DSA602::GetThis();
-    Measurement *pmeas  = scope->pMeasurement();
-    TList*           lm = fMeas->GetList();
-    MeasurementA*     p;
+    DSA602*      scope = DSA602::GetThis();
+    Measurement* pmeas = scope->pMeasurement();
     UInt_t i;
 
     // First turn all the checkboxes off. 
     for (i=0;i<Measurement::kNMeasurements;i++)
     {
 	fCB[i]->SetState(kButtonUp);
-	p = (MeasurementA *)lm->At(i);
-	p->SetState(false);
     }
 
     // How many active items in the list. 
@@ -523,37 +489,9 @@ void MeasDlg::ReadState(void)
     {
 	index = pmeas->ActiveIndex(i);
 	fCB[index]->SetState(kButtonDown);
-	p = (MeasurementA *)lm->At(index);
-	p->SetState(true);    }
+    }
     SET_DEBUG_STACK;
 }
-
-/**
- ******************************************************************
- *
- * Function Name : DoApply
- *
- * Description : User pressed the Apply button for the measurement dialog.
- *               Query results, buld and send the message.
- *
- * Inputs : None
- *
- * Returns : None
- *
- * Error Conditions :
- *
- * Unit Tested on:
- *
- * Unit Tested by:
- *
- *
- *******************************************************************
- */
-void MeasDlg::DoApply()
-{
-    cout << "Apply not yet populated." << endl;
-}
-
 
 /**
  ******************************************************************
@@ -612,49 +550,24 @@ void MeasDlg::Update(void)
 {
     DSA602*       scope = DSA602::GetThis();
     Measurement*  pmeas  = scope->pMeasurement();
-    MeasurementA* p;
+    MeasurementA* pA;
+    char          s[32];
 
     // Query the data. 
     pmeas->Update();
 
     // Loop over the known values and query the ones that are active
-    TListIter next(fMeas->GetList());
-    UInt_t id = 0;
-    while ((p = (MeasurementA *)next()))
+    // How many active items in the list. 
+    UInt_t N = pmeas->ActiveList();
+    UInt_t index = 0;
+    // Loop over the active elements  and retrived the ids. 
+    for (UInt_t i=0;i<N;i++)
     {
-	// Get the data on those that are enabled. 
-	if (p->State())
-	{
-	    cout << "MeasDlg::Update FIXME!!!" << endl;
-	}
-	id++;
+	index = pmeas->ActiveIndex(i);
+	pA = pmeas->GetByIndex((Measurement::MTYPES)index);
+	fLabel[i]->SetText(pA->Text());
+	sprintf(s, "%g", pA->Value());
+	fData[i]->SetText(s);
     }
-#if 0
-    sprintf(s, "%g", pmeas->Risetime().Value());
-    fRisetime->SetText(s);
-
-    sprintf(s, "%g", pmeas->Falltime().Value());    
-    fFalltime->SetText(s);
-
-    sprintf(s, "%g", pmeas->Frequency().Value());    
-    fFrequency->SetText(s);
-
-    sprintf(s, "%g", pmeas->RMS().Value());    
-    fRMS->SetText(s);
-
-    sprintf(s, "%g", pmeas->Gain().Value());    
-    fGain->SetText(s);
-
-    sprintf(s, "%g", pmeas->Max().Value());    
-    fMax->SetText(s);
-
-    sprintf(s, "%g", pmeas->Min().Value());    
-    fMin->SetText(s);
-
-    sprintf(s, "%g", pmeas->Mean().Value());    
-    fMean->SetText(s);
-
-    sprintf(s, "%g", pmeas->Midpoint().Value());    
-    fMid->SetText(s);
-#endif
+    SET_DEBUG_STACK;
 }

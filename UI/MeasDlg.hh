@@ -10,6 +10,7 @@
  * Restrictions/Limitations :
  *
  * Change Descriptions :
+ * 27-Dec-22 CBL Removed MSLIST, it is now a part of MeasurementA. 
  *
  * Classification : Unclassified
  *
@@ -19,8 +20,8 @@
  */
 #ifndef __MEASDLG_hh_
 #define __MEASDLG_hh_
-#    include <RQ_OBJECT.h>
-class MSLIST;
+#  include <RQ_OBJECT.h>
+
 class TGLabel;
 class TGCheckButton;
 
@@ -32,15 +33,14 @@ public:
     /// Constructor
     MeasDlg (const TGWindow *parent);
     ~MeasDlg ();
-    static const UInt_t   kMaxReadout = 6;
     
     // SLOTS
     /// Close the window
     void   CloseWindow();
-    /// User pressed the OK button, end the dialog
-    void   DoOK();
-    /// User pressed the Cancel button, end the dialog
-    void   DoCancel();
+    /// User pressed the Read button, Read the data again. 
+    void   DoRead();
+    /// User pressed the Done button, end the dialog
+    void   DoDone();
     /// Close the window
     void   DoClose();
     void   DoApply();
@@ -57,13 +57,12 @@ private:
     void Update();
 
     // private variables
-    MSLIST*        fMeas;
     TGLabel*       fTrace;      // Label of trace on display.
  
     // Only 6 measurements are available. 
-    TGLabel*       fLabel[kMaxReadout];     // Labels and Data can be NULL. 
-    TGLabel*       fData[kMaxReadout];
-    TGCheckButton* fCB[26];
+    TGLabel*       fLabel[6];     // Labels and Data can be NULL. 
+    TGLabel*       fData[6];
+    TGCheckButton* fCB[32];
 };
 
 #endif
