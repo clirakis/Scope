@@ -145,17 +145,16 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
     // 6 
     if (pCH->Applicable(Channel::kIMPEDANCE))
     {
-	label = new TGLabel(Channel_gf, new TGHotString("Impedence:"));
+	label = new TGLabel(Channel_gf, new TGHotString("Impedance:"));
 	Channel_gf->AddFrame(label);
-	fIMPedence = new TGComboBox( Channel_gf);
-	fIMPedence->AddEntry("50 OHM", kFIFTY);
-	fIMPedence->AddEntry("1M OHM", kONE_MEG);
-	fIMPedence->AddEntry("1G OHM", kONE_GIG);
-	fIMPedence->Resize(100,20);
-	fIMPedence->Connect("Selected(int)", "ChannelFrame", this, 
-			    "SetIMPedence(int)");
-	Channel_gf->AddFrame(fIMPedence);
-	//fIMPedence->Select((Int_t)ch->Impedence(),kFALSE); FIXME
+	fIMPedance = new TGComboBox( Channel_gf);
+	fIMPedance->AddEntry("50 OHM", kFIFTY);
+	fIMPedance->AddEntry("1M OHM", kONE_MEG);
+	fIMPedance->AddEntry("1G OHM", kONE_GIG);
+	fIMPedance->Resize(100,20);
+	fIMPedance->Connect("Selected(int)", "ChannelFrame", this, 
+			    "SetIMPedance(int)");
+	Channel_gf->AddFrame(fIMPedance);
     }
     // 7
     if (pCH->Applicable(Channel::kPROBE))
@@ -172,14 +171,6 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 	Channel_gf->AddFrame(label);
 	fPROTect = new TGCheckButton(Channel_gf,"Protect");
 	Channel_gf->AddFrame(fPROTect);
-// 	if (pCH->Protect()) FIXME
-// 	{
-// 	    fPROTect->SetState(kButtonUp, kFALSE);
-// 	}
-// 	else
-// 	{
-// 	    fPROTect->SetState(kButtonDown, kFALSE);
-// 	}
 	fPROTect->Connect("Clicked()", "ChannelFrame", this, "SetPROTect()");
     }
     // 9 
@@ -320,12 +311,15 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
                                          5, 5, 5, 5);
     Resize();
     p->AddFrame( this, L);
+
+    // Finally, fill in the values. 
+    Update();
     SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : ChannelFrame Destructor.
  *
  * Description : 
  *
@@ -342,7 +336,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
  *
  *******************************************************************
  */
-ChannelFrame::~ChannelFrame()
+ChannelFrame::~ChannelFrame(void)
 {
     SET_DEBUG_STACK;
 
@@ -350,9 +344,9 @@ ChannelFrame::~ChannelFrame()
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : Update
  *
- * Description : 
+ * Description : Update all the values in the Frame. 
  *
  * Inputs : None
  *
@@ -362,7 +356,7 @@ ChannelFrame::~ChannelFrame()
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -370,9 +364,10 @@ ChannelFrame::~ChannelFrame()
 void ChannelFrame::Update(void)
 {
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->Update();
+    Channel*  pCH = (Channel*) fpChannel;
+
+    pCH->Update();
+
     // 1
     if (pCH->Applicable(Channel::kAMPOFFSET))
     {
@@ -392,22 +387,22 @@ void ChannelFrame::Update(void)
     // 4
     if (pCH->Applicable(Channel::kBWHI))
     {
-	fBWHi->SetNumber(pCH->Bandwidth_Hi());
+	fBWHi->SetNumber(pCH->Bandwidth_HI());
     }
     // 5
     if (pCH->Applicable(Channel::kCCOUPLING))
     {
-	fCOUpling->Select((Int_t)ch->Coupling(),kFALSE);
+	fCOUpling->Select((Int_t)pCH->Coupling(false),kFALSE);
     }
     // 6
-    if (pCH->Applicable(Channel::kCIMPEDANCE))
+    if (pCH->Applicable(Channel::kIMPEDANCE))
     {
-	fIMPedence->Select((Int_t)ch->Impedence(),kFALSE);
+	fIMPedance->Select((Int_t)pCH->Impedance(false),kFALSE);
     }
     // 7 - SKIP label only.
     if (pCH->Applicable(Channel::kPROTECT))
     {
-	if (pCH->Protect())
+	if (pCH->Protect(false))
 	{
 	    fPROTect->SetState(kButtonUp, kFALSE);
 	}
@@ -419,54 +414,54 @@ void ChannelFrame::Update(void)
     // 9
     if (pCH->Applicable(Channel::kSENSITIVITY))
     {
-	fSENsitivity->SetNumber(pCH->Sensitivity());
+	fSENsitivity->SetNumber(pCH->Sensitivity(false));
     }
     // 10 -> Skip label only
-#if 0
     if (pCH->Applicable(Channel::kUNITS))
     {
-	fUNIts->Settext(pCH->Units()));
+	fUNIts->SetText(pCH->Units(false).c_str());
     }
-#endif
     // 11
     if (pCH->Applicable(Channel::kVCOFFSET))
     {
-	fVCOffset->SetNumber(pCH->VCOffset());
+	fVCOffset->SetNumber(pCH->VCOffset(false));
     }
     // 12
     if (pCH->Applicable(Channel::kOFFSET))
     {
-	fOFFset->SetNumber(pCH->Offset());
+	fOFFset->SetNumber(pCH->Offset(false));
     }
 
-    if (pCH->NMinusCommands() > 0)
+    if (pCH->IsDifferential())
     {
-	// =========================================================
-	// Only used if differential. 
-	// Minus frame ==============================================
+	/* 
+	 *=========================================================
+	 * Only used if differential. 
+	 * Minus frame 
+	 *=========================================================
+	 */
 
 	// 1
-	fMNSCoupling->Select((Int_t)ch->MNS_Coupling(),kFALSE);
+	fMNSCoupling->Select((Int_t)pCH->MNS_Coupling(false),kFALSE);
 
 	// 2
-	fMNSOffset->SetNumber( ch->Offset());
+	fMNSOffset->SetNumber( pCH->Offset(false));
 
 	// 3 - Text only
     }
-    if(pCH->NPlusCommands()>0)
+    if(pCH->IsDifferential())
     {
 	// =========================================================
 	// Only used if differential. 
 	// Plus frame ==============================================
-	fPLSCoupling->Select((Int_t)ch->PLS_Coupling(),kFALSE);
+	fPLSCoupling->Select((Int_t)pCH->PLS_Coupling(false),kFALSE);
 
 	// 2
-	fPLSOffset->SetNumber(pCH->Offset());
+	fPLSOffset->SetNumber(pCH->Offset(false));
 
 	// 3 - String only
 	//fPLSProbe
     }
-#endif
     SET_DEBUG_STACK;
 }
 /**
@@ -493,6 +488,26 @@ void ChannelFrame::Apply(void)
 {
     SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetAMPoffset(long val)
 { 
     SET_DEBUG_STACK;
@@ -501,6 +516,26 @@ void ChannelFrame::SetAMPoffset(long val)
     ch->SendCommand(Channel::kAMPOFFSET, fAMPoffset->GetNumber());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetBW(long val)
 { 
     SET_DEBUG_STACK;
@@ -511,12 +546,72 @@ void ChannelFrame::SetBW(long val)
     ch->SendCommand(Channel::kBW, fBW->GetNumber());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetBWHi(long val)
 {    
     SET_DEBUG_STACK;
  cout<< __func__ << endl;}
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetBWLo(long val){     SET_DEBUG_STACK;
 cout<< __func__ << endl;}
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetCOUpling(int val)
 {
     SET_DEBUG_STACK;
@@ -526,14 +621,57 @@ void ChannelFrame::SetCOUpling(int val)
     ch->SendCommand(Channel::kCCOUPLING, (COUPLING) val);
 #endif
 }
-void ChannelFrame::SetIMPedence(int val)
+/**
+ ******************************************************************
+ *
+ * Function Name : SetIMPedance
+ *
+ * Description : callback for the selection dialog for seting
+ *               the input impedance for a channel. (50, 1M, 100M)
+ *
+ *               The value supplied by the callback is a pointer to 
+ *               the enum. 
+ *
+ * Inputs : Val - See the enum IMPEDANCE in DSA602_Types.hh
+ *
+ * Returns : None
+ *
+ * Error Conditions : NONE
+ *
+ * Unit Tested on: 28-Dec-22
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void ChannelFrame::SetIMPedance(int val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kCIMPEDANCE, (IMPEDANCE) val);
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand( Channel::kIMPEDANCE, (IMPEDANCE)val);
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetMNSCoupling(int val)
 { 
     SET_DEBUG_STACK;
@@ -542,6 +680,26 @@ void ChannelFrame::SetMNSCoupling(int val)
     ch->SendCommand(Channel::kMNSCOUPLING, (COUPLING) val);
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetMNSOffset(long val)
 { 
     SET_DEBUG_STACK;
@@ -550,6 +708,26 @@ void ChannelFrame::SetMNSOffset(long val)
     ch->SendCommand(Channel::kMNSOFFSET, fMNSOffset->GetNumber());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetOFFset(long val)
 { 
     cout<< __func__ << endl;
@@ -559,6 +737,26 @@ void ChannelFrame::SetOFFset(long val)
     ch->SendCommand(Channel::kOFFSET, fOFFset->GetNumber());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetPLSCoupling(int val)
 { 
     SET_DEBUG_STACK;
@@ -567,6 +765,26 @@ void ChannelFrame::SetPLSCoupling(int val)
     ch->SendCommand(Channel::kPLSCOUPLING, (COUPLING) val);
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetPLSOffset(long val)
 {
     SET_DEBUG_STACK;
@@ -575,6 +793,26 @@ void ChannelFrame::SetPLSOffset(long val)
     ch->SendCommand(Channel::kPLSOFFSET, fPLSOffset->GetNumber());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetPROTect()
 { 
     SET_DEBUG_STACK;
@@ -583,6 +821,26 @@ void ChannelFrame::SetPROTect()
     ch->SendCommand(Channel::kPROTECT, (bool)fPROTect->GetState());
 #endif
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetSENsitivity(long val)
 { 
     SET_DEBUG_STACK;
@@ -593,6 +851,26 @@ void ChannelFrame::SetSENsitivity(long val)
 #endif
 }
 
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void ChannelFrame::SetVCOffset(long val)
 { 
     cout<< __func__ << endl;

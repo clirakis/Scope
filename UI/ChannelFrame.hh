@@ -44,7 +44,7 @@ public:
     void SetBWHi(long val);
     void SetBWLo(long val);
     void SetCOUpling(int val);
-    void SetIMPedence(int val);
+    void SetIMPedance(int val);
     void SetMNSCoupling(int val);
     void SetMNSOffset(long val);
     void SetOFFset(long val);
@@ -65,7 +65,7 @@ private:
     TGNumberEntry* fBWHi;
     TGNumberEntry* fBWLo;
     TGComboBox*    fCOUpling;
-    TGComboBox*    fIMPedence;
+    TGComboBox*    fIMPedance;
     TGComboBox*    fMNSCoupling;
     TGNumberEntry* fMNSOffset;
     TGLabel*       fMNSProbe;
