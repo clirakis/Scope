@@ -199,15 +199,15 @@ void DescDlg::BuildDisplayArea()
 	pModule = pSE->GetModule(i);
 	switch(pModule->Type())
 	{
-	case Module::kTYPE_NONE:
+	case kTYPE_NONE:
 	    break;
-	case Module::kTYPE_11A32:
+	case kTYPE_11A32:
 	    sprintf(tmp, "%c1", SlotChar(pModule->Slot()));
 	    fInput[0]->AddEntry( tmp,j); j++;
 	    sprintf(tmp, "%c2", SlotChar(pModule->Slot()));
 	    fInput[0]->AddEntry( tmp,j); j++;
 	    break;
-	case Module::kTYPE_11A33:
+	case kTYPE_11A33:
 	    sprintf(tmp, "%c1", SlotChar(pModule->Slot()));
 	    fInput[0]->AddEntry( tmp,j); j++;
 	    break;
@@ -256,15 +256,15 @@ void DescDlg::BuildDisplayArea()
 	pModule = pSE->GetModule(i);
 	switch((UInt_t)pModule->Type())
 	{
-	case Module::kTYPE_NONE:
+	case kTYPE_NONE:
 	    break;
-	case Module::kTYPE_11A32:
+	case kTYPE_11A32:
 	    sprintf(tmp, "%c1", SlotChar(pModule->Slot()));
 	    fInput[1]->AddEntry( tmp,j); j++;
 	    sprintf(tmp, "%c2", SlotChar(pModule->Slot()));
 	    fInput[1]->AddEntry( tmp,j); j++;
 	    break;
-	case Module::kTYPE_11A33:
+	case kTYPE_11A33:
 	    sprintf(tmp, "%c1", SlotChar(pModule->Slot()));
 	    fInput[1]->AddEntry( tmp,j); j++;
 	    break;

@@ -25,13 +25,8 @@ using namespace std;
 #include <stdlib.h>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
 #include <TGButton.h>
-#include <TGTextEntry.h>
-#include <TGMsgBox.h>
 #include <TGTab.h>
 #include <TVirtualX.h>
 
@@ -114,7 +109,7 @@ ModuleDlg::ModuleDlg(const TGWindow *main)
  *
  *******************************************************************
  */
-void ModuleDlg::BuildButtonBox()
+void ModuleDlg::BuildButtonBox(void)
 {
     TGButton *tb;
 
@@ -156,18 +151,20 @@ void ModuleDlg::BuildDisplayArea()
 {
     Module*           pmg;
     TGCompositeFrame* tf;
-    DSA602* ptr     = DSA602::GetThis();
+    DSA602* ptr         = DSA602::GetThis();
     StatusAndEvent* pSE = ptr->pStatusAndEvent();
-    unsigned char n = pSE->GetNModule();
-    unsigned char i;
+    unsigned char n     = pSE->GetNModule();
 
     TGTab *Tab = new TGTab(this, 600, 600);
     //Tab->Connect("Selected(Int_t)", "BCUI", this, "DoTab(Int_t)");
     TGLayoutHints *L5 = new TGLayoutHints(kLHintsTop | kLHintsExpandX |
                                           kLHintsExpandY, 2, 2, 5, 1);
-    for (i=0;i<n;i++)
+
+    cout << "NMODULE: " << n << endl;
+    for (uint8_t i=0;i<n;i++)
     {
 	pmg = pSE->GetModule(i);
+	cout << " MODULE: " << *pmg << endl;
 	if (pmg != NULL)
 	{
 	    tf = Tab->AddTab(pmg->ModuleString());
@@ -177,9 +174,7 @@ void ModuleDlg::BuildDisplayArea()
 	    }
 	    else
 	    {
-#if 0  // FIXME
-		new ChannelFrame(tf, pmg->GetChannel(0));
-#endif
+		new ChannelFrame(tf, pmg);
 	    }
 	}
     }
@@ -285,15 +280,13 @@ void ModuleDlg::DoClose()
  */
 void ModuleDlg::AddMultipleChannels(TGCompositeFrame* f, void *p)
 {
-#if 0
-    ModuleGPIB* pmg = (ModuleGPIB *) p;
-    int i,n;
-    n = pmg->GetNChannel();
+    SET_DEBUG_STACK;
+    Module* pmg = (Module*) p;
 
-    for(i=0;i<n;i++)
+    for(uint8_t i=0;i<2;i++)
     {
 	new ChannelFrame(f, pmg->GetChannel(i));
     }
-#endif
+    SET_DEBUG_STACK;
 }
 

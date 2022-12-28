@@ -37,13 +37,14 @@ using namespace std;
 #include "ChannelFrame.hh"
 #include "DSA602.hh"
 #include "Channel.hh"
+#include "Module.hh"
 
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : ChannelFrame
  *
- * Description : 
+ * Description : Really, this is what is going on in a module. 
  *
  * Inputs : None
  *
@@ -58,27 +59,31 @@ using namespace std;
  *
  *******************************************************************
  */
-ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
+ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 100,300)
 {
-    //char     tmp[32];
+    SET_DEBUG_STACK;
+    // DSA602*         pScope = DSA602::GetThis();
+    //StatusAndEvent* pse    = pScope->pStatusAndEvent();
     TGLabel* label;
-//    ChannelGPIB* ch = (ChannelGPIB *) c;
-//    fChannelGPIB = c;
+
+    // Which slot in the mainframe is this? 
+    fpModule = m;
+    Module*  pModule = (Module*) m;
+    Channel* pCH     = pModule->GetChannel(0);
 
     TGGroupFrame *Channel_gf = new TGGroupFrame( this, "Channel data", 
 						 kHorizontalFrame);
-#if 0
+
     // Rows, Columns, Interval between frames, hints
     Channel_gf->SetLayoutManager(new TGMatrixLayout(Channel_gf, 
-						    ch->NBaseCommands(), 
+						    pCH->NApplicable(),
 						    2, 10, 2));
-
-    // 1
-    if (ch->Active(Channel::AMPOFFSET))
+    // 1 
+    if (pCH->Applicable(Channel::kAMPOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Amplifer Offset:"));
 	Channel_gf->AddFrame(label);
-	fAMPoffset = new TGNumberEntry( Channel_gf, ch->AmpOffset(), 5, -1,
+	fAMPoffset = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 					TGNumberFormat::kNESReal, 
 					TGNumberFormat::kNEAAnyNumber);
 	fAMPoffset->Connect("ValueSet(Long_t)", "ChannelFrame", this, 
@@ -86,136 +91,135 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
 	Channel_gf->AddFrame(fAMPoffset);
     }
 
-    // 2
-    if (ch->Active(Channel::BW))
+    // 2 
+    if (pCH->Applicable(Channel::kBW))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth:"));
 	Channel_gf->AddFrame(label);
-	fBW = new TGNumberEntry( Channel_gf, ch->Bandwidth(), 5, -1,
+	fBW = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 				 TGNumberFormat::kNESReal, 
 				 TGNumberFormat::kNEAAnyNumber);
 	fBW->Connect("ValueSet(Long_t)", "ChannelFrame", this, "SetBW(long)");
 	Channel_gf->AddFrame(fBW);
     }
-    // 3
-    if (ch->Active(Channel::BWLO))
+    // 3 FIXME
+    //if (pCH->Applicable(Channel::kBWLO))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Lo:"));
 	Channel_gf->AddFrame(label);
-	fBWLo = new TGNumberEntry( Channel_gf, ch->Bandwidth_Lo(), 5, -1,
+	fBWLo = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 				   TGNumberFormat::kNESReal, 
 				   TGNumberFormat::kNEAAnyNumber);
 	fBWLo->Connect("ValueSet(Long_t)", "ChannelFrame", this,
 		       "SetBWLo(long)");
 	Channel_gf->AddFrame(fBWLo);
     }
-    // 4
-    if (ch->Active(Channel::BWHI))
+    // 4 FIXME
+    //if (pCH->Applicable(Channel::kBWHI))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Hi:"));
 	Channel_gf->AddFrame(label);
-	fBWHi = new TGNumberEntry( Channel_gf, ch->Bandwidth_Hi(), 5, -1,
+	fBWHi = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 				   TGNumberFormat::kNESReal, 
 				   TGNumberFormat::kNEAAnyNumber);
 	fBWHi->Connect("ValueSet(Long_t)", "ChannelFrame", this, 
 		       "SetBWHi(long)");
 	Channel_gf->AddFrame(fBWHi);
     }
-    // 5
-    if (ch->Active(Channel::CCOUPLING))
+    // 5 FIXME
+    //if (pCH->Applicable(Channel::kCCOUPLING))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Coupling:"));
 	Channel_gf->AddFrame(label);
 	fCOUpling = new TGComboBox( Channel_gf);
-	fCOUpling->AddEntry("AC",  COUPLING_AC);
-	fCOUpling->AddEntry("DC",  COUPLING_DC);
-	fCOUpling->AddEntry("OFF", COUPLING_OFF);
-	fCOUpling->AddEntry("VC",  COUPLING_VC);
+	fCOUpling->AddEntry("AC",  kCOUPLING_AC);
+	fCOUpling->AddEntry("DC",  kCOUPLING_DC);
+	fCOUpling->AddEntry("OFF", kCOUPLING_OFF);
+	fCOUpling->AddEntry("VC",  kCOUPLING_VC);
 	fCOUpling->Resize(100,20);
 	fCOUpling->Connect("Selected(int)", "ChannelFrame", this, 
 			   "SetCOUpling(int)");
 	Channel_gf->AddFrame(fCOUpling);
-	fCOUpling->Select((Int_t)ch->Coupling(),kFALSE);
+	//fCOUpling->Select((Int_t)ch->Coupling(),kFALSE); FIXME
     }
-    // 6
-    if (ch->Active(Channel::CIMPEDANCE))
+    // 6 FIXME
+    //if (pCH->Applicable(Channel::kCIMPEDANCE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Impedence:"));
 	Channel_gf->AddFrame(label);
 	fIMPedence = new TGComboBox( Channel_gf);
-	fIMPedence->AddEntry("50  OHM", FIFTY);
-	fIMPedence->AddEntry("1 M OHM", ONE_MEG);
-	fIMPedence->AddEntry("1 G OHM", ONE_GIG);
+	fIMPedence->AddEntry("50  OHM", kFIFTY);
+	fIMPedence->AddEntry("1 M OHM", kONE_MEG);
+	fIMPedence->AddEntry("1 G OHM", kONE_GIG);
 	fIMPedence->Resize(100,20);
 	fIMPedence->Connect("Selected(int)", "ChannelFrame", this, 
 			    "SetIMPedence(int)");
 	Channel_gf->AddFrame(fIMPedence);
-	fIMPedence->Select((Int_t)ch->Impedence(),kFALSE);
+	//fIMPedence->Select((Int_t)ch->Impedence(),kFALSE); FIXME
     }
-    // 7
-    if (ch->Active(Channel::PROBE))
+    // 7 FIXME
+    //if (pCH->Applicable(Channel::kPROBE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Probe:"));
 	Channel_gf->AddFrame(label);
-	fPRObe = new TGLabel(Channel_gf, ch->Probe());
+	fPRObe = new TGLabel(Channel_gf, "NONE");
 	Channel_gf->AddFrame(fPRObe);
     }
-    // 8
-    if (ch->Active(Channel::PROTECT))
+    // 8 FIXME
+    //if (pCH->Applicable(Channel::kPROTECT))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("     "));
 	Channel_gf->AddFrame(label);
 	fPROTect = new TGCheckButton(Channel_gf,"Protect");
 	Channel_gf->AddFrame(fPROTect);
-	if (ch->Protect())
-	{
-	    fPROTect->SetState(kButtonUp, kFALSE);
-	}
-	else
-	{
-	    fPROTect->SetState(kButtonDown, kFALSE);
-	}
-	fPROTect->Connect("Clicked()", "ChannelFrame", this, 
-			  "SetPROTect()");
+// 	if (pCH->Protect()) FIXME
+// 	{
+// 	    fPROTect->SetState(kButtonUp, kFALSE);
+// 	}
+// 	else
+// 	{
+// 	    fPROTect->SetState(kButtonDown, kFALSE);
+// 	}
+	fPROTect->Connect("Clicked()", "ChannelFrame", this, "SetPROTect()");
     }
-    // 9
-    if (ch->Active(Channel::SENSITIVITY))
+    // 9 FIXME
+    //if (pCH->Applicable(Channel::kSENSITIVITY))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Sensitivity:"));
 	Channel_gf->AddFrame(label);
-	fSENsitivity = new TGNumberEntry( Channel_gf, ch->Sensitivity(), 5, -1,
+	fSENsitivity = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 					  TGNumberFormat::kNESReal, 
 					  TGNumberFormat::kNEAAnyNumber);
 	fSENsitivity->Connect("ValueSet(Long_t)", "ChannelFrame", this, 
 			      "SetSENsitivity(long)");
 	Channel_gf->AddFrame(fSENsitivity);
     }
-    // 10
-    if (ch->Active(Channel::UNITS))
+    // 10 FIXME
+    //if (pCH->Applicable(Channel::kUNITS))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("UNITS:"));
 	Channel_gf->AddFrame(label);
-	fUNIts = new TGLabel(Channel_gf, new TGHotString(ch->Units()));
+	fUNIts = new TGLabel(Channel_gf, new TGHotString("NONE"));
 	Channel_gf->AddFrame(fUNIts);
     }
-    // 11
-    if (ch->Active(Channel::VCOFFSET))
+    // 11 FIXME
+    //if (pCH->Applicable(Channel::kVCOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("VC offset:"));
 	Channel_gf->AddFrame(label);
-	fVCOffset = new TGNumberEntry( Channel_gf, ch->VCOffset(), 5, -1,
+	fVCOffset = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 				       TGNumberFormat::kNESReal, 
 				       TGNumberFormat::kNEAAnyNumber);
 	fVCOffset->Connect("ValueSet(Long_t)", "ChannelFrame", this, 
 			   "SetVCOffset(long)");
 	Channel_gf->AddFrame(fVCOffset);
     }
-    // 12
-    if (ch->Active(Channel::OFFSET))
+    // 12 FIXME
+    //if (pCH->Applicable(Channel::kOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Offset:"));
 	Channel_gf->AddFrame(label);
-	fOFFset = new TGNumberEntry( Channel_gf, ch->Offset(), 5, -1,
+	fOFFset = new TGNumberEntry( Channel_gf, 0.0, 5, -1,
 				     TGNumberFormat::kNESReal, 
 				     TGNumberFormat::kNEAAnyNumber);
 	fOFFset->Connect("ValueSet(Long_t)", "ChannelFrame", this, 
@@ -225,7 +229,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
     // Finalize Channel group frame. 
     AddFrame(Channel_gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
 
-    if (ch->NMinusCommands() > 0)
+    //if (pCH->NMinusCommands() > 0) FIXME
     {
 	// =========================================================
 	// Only used if differential. 
@@ -238,20 +242,20 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
 	label = new TGLabel(Minus_gf, new TGHotString("Coupling:"));
 	Minus_gf->AddFrame(label);
 	fMNSCoupling = new TGComboBox( Minus_gf);
-	fMNSCoupling->AddEntry("AC",  COUPLING_AC);
-	fMNSCoupling->AddEntry("DC",  COUPLING_DC);
-	fMNSCoupling->AddEntry("OFF", COUPLING_OFF);
-	fMNSCoupling->AddEntry("VC",  COUPLING_VC);
+	fMNSCoupling->AddEntry("AC",  kCOUPLING_AC);
+	fMNSCoupling->AddEntry("DC",  kCOUPLING_DC);
+	fMNSCoupling->AddEntry("OFF", kCOUPLING_OFF);
+	fMNSCoupling->AddEntry("VC",  kCOUPLING_VC);
 	fMNSCoupling->Resize(100,20);
 	fMNSCoupling->Connect("Selected(int)", "ChannelFrame", this, 
 			      "SetMNSCoupling(int)");
 	Minus_gf->AddFrame(fMNSCoupling);
-	fMNSCoupling->Select((Int_t)ch->MNS_Coupling(),kFALSE);
+	//fMNSCoupling->Select((Int_t)c,kFALSE); FIXME
 
 	// 2
 	label = new TGLabel(Minus_gf, new TGHotString("Offset:"));
 	Minus_gf->AddFrame(label);
-	fMNSOffset = new TGNumberEntry( Minus_gf, ch->MNS_Offset(), 5, -1,
+	fMNSOffset = new TGNumberEntry( Minus_gf, 0.0, 5, -1,
 					TGNumberFormat::kNESReal, 
 					TGNumberFormat::kNEAAnyNumber,
 					TGNumberFormat::kNELLimitMinMax,
@@ -263,12 +267,12 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
 	// 3
 	label = new TGLabel(Minus_gf, new TGHotString("Probe:"));
 	Minus_gf->AddFrame(label);
-	fMNSProbe = new TGLabel(Minus_gf, ch->MNS_Probe());
+	fMNSProbe = new TGLabel(Minus_gf, "NONE");
 	Minus_gf->AddFrame(fMNSProbe);
 	// Finalize Minus group frame. 
 	AddFrame(Minus_gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
     }
-    if(ch->NPlusCommands()>0)
+    //if(pCH->NPlusCommands()>0) FIXME
     {
 	// =========================================================
 	// Only used if differential. 
@@ -281,20 +285,20 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
 	label = new TGLabel(Plus_gf, new TGHotString("Coupling:"));
 	Plus_gf->AddFrame(label);
 	fPLSCoupling = new TGComboBox( Plus_gf);
-	fPLSCoupling->AddEntry("AC",  COUPLING_AC);
-	fPLSCoupling->AddEntry("DC",  COUPLING_DC);
-	fPLSCoupling->AddEntry("OFF", COUPLING_OFF);
-	fPLSCoupling->AddEntry("VC",  COUPLING_VC);
+	fPLSCoupling->AddEntry("AC",  kCOUPLING_AC);
+	fPLSCoupling->AddEntry("DC",  kCOUPLING_DC);
+	fPLSCoupling->AddEntry("OFF", kCOUPLING_OFF);
+	fPLSCoupling->AddEntry("VC",  kCOUPLING_VC);
 	fPLSCoupling->Resize(100,20);
 	fPLSCoupling->Connect("Selected(int)", "ChannelFrame", this, 
 			      "SetPLSCoupling(int)");
 	Plus_gf->AddFrame(fPLSCoupling);
-	fPLSCoupling->Select((Int_t)ch->PLS_Coupling(),kFALSE);
+	// fPLSCoupling->Select((Int_t)ch->PLS_Coupling(),kFALSE); FIXME
 
 	// 2
 	label = new TGLabel(Plus_gf, new TGHotString("Offset:"));
 	Plus_gf->AddFrame(label);
-	fPLSOffset = new TGNumberEntry( Plus_gf, ch->PLS_Offset(), 5, -1,
+	fPLSOffset = new TGNumberEntry( Plus_gf, 0.0, 5, -1,
 					TGNumberFormat::kNESReal, 
 					TGNumberFormat::kNEAAnyNumber,
 					TGNumberFormat::kNELLimitMinMax,
@@ -306,17 +310,17 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
 	// 3
 	label = new TGLabel(Plus_gf, new TGHotString("Probe:"));
 	Plus_gf->AddFrame(label);
-	fPLSProbe = new TGLabel(Plus_gf, ch->PLS_Probe());
+	fPLSProbe = new TGLabel(Plus_gf, "NONE");
 	Plus_gf->AddFrame(fPLSProbe);
 	// Finalize Plus group frame. 
 	AddFrame(Plus_gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
     }
-#endif
+
     TGLayoutHints *L = new TGLayoutHints(kLHintsTop|kLHintsLeft|kLHintsExpandX,
                                          5, 5, 5, 5);
     Resize();
     p->AddFrame( this, L);
-
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -340,6 +344,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p) : TGVerticalFrame(p, 100,300)
  */
 ChannelFrame::~ChannelFrame()
 {
+    SET_DEBUG_STACK;
 
 }
 /**
@@ -364,44 +369,45 @@ ChannelFrame::~ChannelFrame()
  */
 void ChannelFrame::Update(void)
 {
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
     ch->Update();
     // 1
-    if (ch->Active(Channel::AMPOFFSET))
+    if (pCH->Applicable(Channel::kAMPOFFSET))
     {
-	fAMPoffset->SetNumber(ch->AmpOffset());
+	fAMPoffset->SetNumber(pCH->AmpOffset());
     }
 
     // 2
-    if (ch->Active(Channel::BW))
+    if (pCH->Applicable(Channel::kBW))
     {
-	fBW->SetNumber(ch->Bandwidth());
+	fBW->SetNumber(pCH->Bandwidth());
     }
     // 3
-    if (ch->Active(Channel::BWLO))
+    if (pCH->Applicable(Channel::kBWLO))
     {
-	fBWLo->SetNumber(ch->Bandwidth_Lo());
+	fBWLo->SetNumber(pCH->Bandwidth_Lo());
     }
     // 4
-    if (ch->Active(Channel::BWHI))
+    if (pCH->Applicable(Channel::kBWHI))
     {
-	fBWHi->SetNumber(ch->Bandwidth_Hi());
+	fBWHi->SetNumber(pCH->Bandwidth_Hi());
     }
     // 5
-    if (ch->Active(Channel::CCOUPLING))
+    if (pCH->Applicable(Channel::kCCOUPLING))
     {
 	fCOUpling->Select((Int_t)ch->Coupling(),kFALSE);
     }
     // 6
-    if (ch->Active(Channel::CIMPEDANCE))
+    if (pCH->Applicable(Channel::kCIMPEDANCE))
     {
 	fIMPedence->Select((Int_t)ch->Impedence(),kFALSE);
     }
     // 7 - SKIP label only.
-    if (ch->Active(Channel::PROTECT))
+    if (pCH->Applicable(Channel::kPROTECT))
     {
-	if (ch->Protect())
+	if (pCH->Protect())
 	{
 	    fPROTect->SetState(kButtonUp, kFALSE);
 	}
@@ -411,29 +417,29 @@ void ChannelFrame::Update(void)
 	}
     }
     // 9
-    if (ch->Active(Channel::SENSITIVITY))
+    if (pCH->Applicable(Channel::kSENSITIVITY))
     {
-	fSENsitivity->SetNumber(ch->Sensitivity());
+	fSENsitivity->SetNumber(pCH->Sensitivity());
     }
     // 10 -> Skip label only
 #if 0
-    if (ch->Active(Channel::UNITS))
+    if (pCH->Applicable(Channel::kUNITS))
     {
-	fUNIts->Settext(ch->Units()));
+	fUNIts->Settext(pCH->Units()));
     }
 #endif
     // 11
-    if (ch->Active(Channel::VCOFFSET))
+    if (pCH->Applicable(Channel::kVCOFFSET))
     {
-	fVCOffset->SetNumber(ch->VCOffset());
+	fVCOffset->SetNumber(pCH->VCOffset());
     }
     // 12
-    if (ch->Active(Channel::OFFSET))
+    if (pCH->Applicable(Channel::kOFFSET))
     {
-	fOFFset->SetNumber(ch->Offset());
+	fOFFset->SetNumber(pCH->Offset());
     }
 
-    if (ch->NMinusCommands() > 0)
+    if (pCH->NMinusCommands() > 0)
     {
 	// =========================================================
 	// Only used if differential. 
@@ -447,7 +453,7 @@ void ChannelFrame::Update(void)
 
 	// 3 - Text only
     }
-    if(ch->NPlusCommands()>0)
+    if(pCH->NPlusCommands()>0)
     {
 	// =========================================================
 	// Only used if differential. 
@@ -455,12 +461,13 @@ void ChannelFrame::Update(void)
 	fPLSCoupling->Select((Int_t)ch->PLS_Coupling(),kFALSE);
 
 	// 2
-	fPLSOffset->SetNumber(ch->Offset());
+	fPLSOffset->SetNumber(pCH->Offset());
 
 	// 3 - String only
 	//fPLSProbe
     }
 #endif
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -484,97 +491,114 @@ void ChannelFrame::Update(void)
  */
 void ChannelFrame::Apply(void)
 {
+    SET_DEBUG_STACK;
 }
 void ChannelFrame::SetAMPoffset(long val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::AMPOFFSET, fAMPoffset->GetNumber());
+    ch->SendCommand(Channel::kAMPOFFSET, fAMPoffset->GetNumber());
 #endif
 }
 void ChannelFrame::SetBW(long val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     // NOT sure how this works. 
     cout<< __func__ << endl;
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::BW, fBW->GetNumber());
+    ch->SendCommand(Channel::kBW, fBW->GetNumber());
 #endif
 }
-void ChannelFrame::SetBWHi(long val){ cout<< __func__ << endl;}
-void ChannelFrame::SetBWLo(long val){ cout<< __func__ << endl;}
+void ChannelFrame::SetBWHi(long val)
+{    
+    SET_DEBUG_STACK;
+ cout<< __func__ << endl;}
+void ChannelFrame::SetBWLo(long val){     SET_DEBUG_STACK;
+cout<< __func__ << endl;}
 void ChannelFrame::SetCOUpling(int val)
 {
+    SET_DEBUG_STACK;
 #if 0
     cout<< __func__ << " " << val << endl;
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::CCOUPLING, (COUPLING) val);
+    ch->SendCommand(Channel::kCCOUPLING, (COUPLING) val);
 #endif
 }
 void ChannelFrame::SetIMPedence(int val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::CIMPEDANCE, (IMPEDANCE) val);
+    ch->SendCommand(Channel::kCIMPEDANCE, (IMPEDANCE) val);
 #endif
 }
 void ChannelFrame::SetMNSCoupling(int val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::MNSCOUPLING, (COUPLING) val);
+    ch->SendCommand(Channel::kMNSCOUPLING, (COUPLING) val);
 #endif
 }
 void ChannelFrame::SetMNSOffset(long val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::MNSOFFSET, fMNSOffset->GetNumber());
+    ch->SendCommand(Channel::kMNSOFFSET, fMNSOffset->GetNumber());
 #endif
 }
 void ChannelFrame::SetOFFset(long val)
 { 
     cout<< __func__ << endl;
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::OFFSET, fOFFset->GetNumber());
+    ch->SendCommand(Channel::kOFFSET, fOFFset->GetNumber());
 #endif
 }
 void ChannelFrame::SetPLSCoupling(int val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::PLSCOUPLING, (COUPLING) val);
+    ch->SendCommand(Channel::kPLSCOUPLING, (COUPLING) val);
 #endif
 }
 void ChannelFrame::SetPLSOffset(long val)
 {
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::PLSOFFSET, fPLSOffset->GetNumber());
+    ch->SendCommand(Channel::kPLSOFFSET, fPLSOffset->GetNumber());
 #endif
 }
 void ChannelFrame::SetPROTect()
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::PROTECT, (bool)fPROTect->GetState());
+    ch->SendCommand(Channel::kPROTECT, (bool)fPROTect->GetState());
 #endif
 }
 void ChannelFrame::SetSENsitivity(long val)
 { 
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
     cout<< __func__ << " " << fSENsitivity->GetNumber() << endl;
-    ch->SendCommand(Channel::SENSITIVITY, fSENsitivity->GetNumber());
+    ch->SendCommand(Channel::kSENSITIVITY, fSENsitivity->GetNumber());
 #endif
 }
 
 void ChannelFrame::SetVCOffset(long val)
 { 
     cout<< __func__ << endl;
+    SET_DEBUG_STACK;
 #if 0
     ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::VCOFFSET, fVCOffset->GetNumber());
+    ch->SendCommand(Channel::kVCOFFSET, fVCOffset->GetNumber());
 #endif
 }

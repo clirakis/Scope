@@ -19,9 +19,9 @@
  */
 #ifndef __CHANNELFRAME_hh_
 #define __CHANNELFRAME_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
+#  include <TGFrame.h>
+#  include <RQ_OBJECT.h>
+
 
 class TGLabel;
 class TGNumberEntry;
@@ -32,9 +32,8 @@ class ChannelFrame : public TGVerticalFrame
 {
     ClassDef(ChannelFrame, 0);
 public:
-    ChannelFrame(TGCompositeFrame*);
+    ChannelFrame(TGCompositeFrame*, void* pModule);
     ~ChannelFrame();
-
 
     void Apply(void);   // Get any changed commands
     void Update(void);  // Update from mainframe. 
@@ -57,6 +56,7 @@ public:
 
 private:
 
+    void*          fpModule; 
     // Pointers to type of display field.
     // Prefixes in use, MN - minus, PL - plus applies to 
     //     differential amplifiers.

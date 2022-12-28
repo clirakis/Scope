@@ -19,9 +19,8 @@
  */
 #ifndef __MODULEDLG_hh_
 #define __MODULEDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
+#  include <TGFrame.h>
+#  include <RQ_OBJECT.h>
 
 class TGLabel;
 
