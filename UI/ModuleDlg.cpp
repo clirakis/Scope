@@ -151,22 +151,22 @@ void ModuleDlg::BuildDisplayArea()
 {
     Module*           pmg;
     TGCompositeFrame* tf;
-    DSA602* ptr         = DSA602::GetThis();
+    DSA602*         ptr = DSA602::GetThis();
     StatusAndEvent* pSE = ptr->pStatusAndEvent();
-    unsigned char n     = pSE->GetNModule();
+    unsigned char   n   = pSE->GetNModule();
+    Channel*        pCH;
 
     TGTab *Tab = new TGTab(this, 600, 600);
     //Tab->Connect("Selected(Int_t)", "BCUI", this, "DoTab(Int_t)");
     TGLayoutHints *L5 = new TGLayoutHints(kLHintsTop | kLHintsExpandX |
                                           kLHintsExpandY, 2, 2, 5, 1);
 
-    cout << "NMODULE: " << n << endl;
     for (uint8_t i=0;i<n;i++)
     {
 	pmg = pSE->GetModule(i);
-	cout << " MODULE: " << *pmg << endl;
 	if (pmg != NULL)
 	{
+	    pCH = pmg->GetChannel(0);
 	    tf = Tab->AddTab(pmg->ModuleString());
 	    if (pmg->GetNChannel()>1)
 	    {
@@ -174,7 +174,7 @@ void ModuleDlg::BuildDisplayArea()
 	    }
 	    else
 	    {
-		new ChannelFrame(tf, pmg);
+		new ChannelFrame(tf, pCH);
 	    }
 	}
     }
@@ -282,11 +282,19 @@ void ModuleDlg::AddMultipleChannels(TGCompositeFrame* f, void *p)
 {
     SET_DEBUG_STACK;
     Module* pmg = (Module*) p;
+    // Create a frame to hold the two channel data.
+    TGCompositeFrame *hcf = new TGCompositeFrame(f, 600, 20, kHorizontalFrame);
+    TGLayoutHints* hl = new TGLayoutHints(
+	kLHintsTop|kLHintsLeft|kLHintsExpandX, 0, 0, 5, 5);
+
+    f->AddFrame( hcf, hl);
 
     for(uint8_t i=0;i<2;i++)
     {
-	new ChannelFrame(f, pmg->GetChannel(i));
+	new ChannelFrame(hcf, pmg->GetChannel(i));
     }
+
+    hcf->Resize();
     SET_DEBUG_STACK;
 }
 

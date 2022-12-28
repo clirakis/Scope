@@ -28,11 +28,11 @@ class TGNumberEntry;
 class TGComboBox;
 class TGCheckButton;
 
-class ChannelFrame : public TGVerticalFrame
+class ChannelFrame : public TGHorizontalFrame
 {
     ClassDef(ChannelFrame, 0);
 public:
-    ChannelFrame(TGCompositeFrame*, void* pModule);
+    ChannelFrame(TGCompositeFrame*, void* pChannel);
     ~ChannelFrame();
 
     void Apply(void);   // Get any changed commands
@@ -56,7 +56,7 @@ public:
 
 private:
 
-    void*          fpModule; 
+    void*          fpChannel; 
     // Pointers to type of display field.
     // Prefixes in use, MN - minus, PL - plus applies to 
     //     differential amplifiers.

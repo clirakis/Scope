@@ -22,15 +22,9 @@ using namespace std;
 #include <string>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
-#include <TGButton.h>
-#include <TGTextEntry.h>
 #include <TGNumberEntry.h>
 #include <TGComboBox.h>
-#include <TGMsgBox.h>
 
 /// Local Includes.
 #include "debug.h"
@@ -45,39 +39,45 @@ using namespace std;
  * Function Name : ChannelFrame
  *
  * Description : Really, this is what is going on in a module. 
+ * This is replicted per module. Encapsulating it this way makes it easy. 
  *
- * Inputs : None
+ * Inputs : 
+ *    p - parent frame
+ *    m - current module to display. 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : NONE
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 100,300)
+ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) : 
+    TGHorizontalFrame(p, 100,300)
 {
     SET_DEBUG_STACK;
-    // DSA602*         pScope = DSA602::GetThis();
-    //StatusAndEvent* pse    = pScope->pStatusAndEvent();
     TGLabel* label;
+    char s[64];
+    /*
+     * Embed all of the sub frames into a horizontial frame. 
+     *
+     * Which slot in the mainframe is this? 
+     * Store pChannel in fpChannel for later reference. 
+     */
+    fpChannel = pChannel;
+    Channel*  pCH = (Channel*) pChannel;
 
-    // Which slot in the mainframe is this? 
-    fpModule = m;
-    Module*  pModule = (Module*) m;
-    Channel* pCH     = pModule->GetChannel(0);
-
-    TGGroupFrame *Channel_gf = new TGGroupFrame( this, "Channel data", 
-						 kHorizontalFrame);
+    // =================================================================
+    sprintf( s, "Channel %d", pCH->Number());
+    TGGroupFrame *Channel_gf = new TGGroupFrame( this, s, kHorizontalFrame);
 
     // Rows, Columns, Interval between frames, hints
     Channel_gf->SetLayoutManager(new TGMatrixLayout(Channel_gf, 
-						    pCH->NApplicable(),
-						    2, 10, 2));
+						    11, 2, 10, 2));
     // 1 
     if (pCH->Applicable(Channel::kAMPOFFSET))
     {
@@ -102,8 +102,8 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 	fBW->Connect("ValueSet(Long_t)", "ChannelFrame", this, "SetBW(long)");
 	Channel_gf->AddFrame(fBW);
     }
-    // 3 FIXME
-    //if (pCH->Applicable(Channel::kBWLO))
+    // 3 
+    if (pCH->Applicable(Channel::kBWLO))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Lo:"));
 	Channel_gf->AddFrame(label);
@@ -114,8 +114,8 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 		       "SetBWLo(long)");
 	Channel_gf->AddFrame(fBWLo);
     }
-    // 4 FIXME
-    //if (pCH->Applicable(Channel::kBWHI))
+    // 4 
+    if (pCH->Applicable(Channel::kBWHI))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Hi:"));
 	Channel_gf->AddFrame(label);
@@ -126,8 +126,8 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 		       "SetBWHi(long)");
 	Channel_gf->AddFrame(fBWHi);
     }
-    // 5 FIXME
-    //if (pCH->Applicable(Channel::kCCOUPLING))
+    // 5 
+    if (pCH->Applicable(Channel::kCCOUPLING))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Coupling:"));
 	Channel_gf->AddFrame(label);
@@ -142,31 +142,31 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 	Channel_gf->AddFrame(fCOUpling);
 	//fCOUpling->Select((Int_t)ch->Coupling(),kFALSE); FIXME
     }
-    // 6 FIXME
-    //if (pCH->Applicable(Channel::kCIMPEDANCE))
+    // 6 
+    if (pCH->Applicable(Channel::kIMPEDANCE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Impedence:"));
 	Channel_gf->AddFrame(label);
 	fIMPedence = new TGComboBox( Channel_gf);
-	fIMPedence->AddEntry("50  OHM", kFIFTY);
-	fIMPedence->AddEntry("1 M OHM", kONE_MEG);
-	fIMPedence->AddEntry("1 G OHM", kONE_GIG);
+	fIMPedence->AddEntry("50 OHM", kFIFTY);
+	fIMPedence->AddEntry("1M OHM", kONE_MEG);
+	fIMPedence->AddEntry("1G OHM", kONE_GIG);
 	fIMPedence->Resize(100,20);
 	fIMPedence->Connect("Selected(int)", "ChannelFrame", this, 
 			    "SetIMPedence(int)");
 	Channel_gf->AddFrame(fIMPedence);
 	//fIMPedence->Select((Int_t)ch->Impedence(),kFALSE); FIXME
     }
-    // 7 FIXME
-    //if (pCH->Applicable(Channel::kPROBE))
+    // 7
+    if (pCH->Applicable(Channel::kPROBE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Probe:"));
 	Channel_gf->AddFrame(label);
 	fPRObe = new TGLabel(Channel_gf, "NONE");
 	Channel_gf->AddFrame(fPRObe);
     }
-    // 8 FIXME
-    //if (pCH->Applicable(Channel::kPROTECT))
+    // 8 
+    if (pCH->Applicable(Channel::kPROTECT))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("     "));
 	Channel_gf->AddFrame(label);
@@ -182,8 +182,8 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 // 	}
 	fPROTect->Connect("Clicked()", "ChannelFrame", this, "SetPROTect()");
     }
-    // 9 FIXME
-    //if (pCH->Applicable(Channel::kSENSITIVITY))
+    // 9 
+    if (pCH->Applicable(Channel::kSENSITIVITY))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Sensitivity:"));
 	Channel_gf->AddFrame(label);
@@ -194,16 +194,16 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 			      "SetSENsitivity(long)");
 	Channel_gf->AddFrame(fSENsitivity);
     }
-    // 10 FIXME
-    //if (pCH->Applicable(Channel::kUNITS))
+    // 10
+    if (pCH->Applicable(Channel::kUNITS))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("UNITS:"));
 	Channel_gf->AddFrame(label);
 	fUNIts = new TGLabel(Channel_gf, new TGHotString("NONE"));
 	Channel_gf->AddFrame(fUNIts);
     }
-    // 11 FIXME
-    //if (pCH->Applicable(Channel::kVCOFFSET))
+    // 11 
+    if (pCH->Applicable(Channel::kVCOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("VC offset:"));
 	Channel_gf->AddFrame(label);
@@ -214,8 +214,8 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 			   "SetVCOffset(long)");
 	Channel_gf->AddFrame(fVCOffset);
     }
-    // 12 FIXME
-    //if (pCH->Applicable(Channel::kOFFSET))
+    // 12
+    if (pCH->Applicable(Channel::kOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Offset:"));
 	Channel_gf->AddFrame(label);
@@ -229,7 +229,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
     // Finalize Channel group frame. 
     AddFrame(Channel_gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
 
-    //if (pCH->NMinusCommands() > 0) FIXME
+    if (pCH->IsDifferential())
     {
 	// =========================================================
 	// Only used if differential. 
@@ -272,7 +272,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *m) : TGVerticalFrame(p, 10
 	// Finalize Minus group frame. 
 	AddFrame(Minus_gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
     }
-    //if(pCH->NPlusCommands()>0) FIXME
+    if(pCH->IsDifferential())
     {
 	// =========================================================
 	// Only used if differential. 
