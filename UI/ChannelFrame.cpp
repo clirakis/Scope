@@ -78,7 +78,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
     // Rows, Columns, Interval between frames, hints
     Channel_gf->SetLayoutManager(new TGMatrixLayout(Channel_gf, 
 						    11, 2, 10, 2));
-    // 1 
+    // 1 *
     if (pCH->Applicable(Channel::kAMPOFFSET))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Amplifer Offset:"));
@@ -91,7 +91,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 	Channel_gf->AddFrame(fAMPoffset);
     }
 
-    // 2 
+    // 2 FIXME - Don't know upper and lower limits. 
     if (pCH->Applicable(Channel::kBW))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth:"));
@@ -102,7 +102,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 	fBW->Connect("ValueSet(Long_t)", "ChannelFrame", this, "SetBW(long)");
 	Channel_gf->AddFrame(fBW);
     }
-    // 3 
+    // 3 FIXME - Don't know upper and lower limits.
     if (pCH->Applicable(Channel::kBWLO))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Lo:"));
@@ -114,7 +114,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 		       "SetBWLo(long)");
 	Channel_gf->AddFrame(fBWLo);
     }
-    // 4 
+    // 4 FIXME - Don't know upper and lower limits.
     if (pCH->Applicable(Channel::kBWHI))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Bandwidth Hi:"));
@@ -126,7 +126,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 		       "SetBWHi(long)");
 	Channel_gf->AddFrame(fBWHi);
     }
-    // 5 
+    // 5 OK
     if (pCH->Applicable(Channel::kCCOUPLING))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Coupling:"));
@@ -142,7 +142,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 	Channel_gf->AddFrame(fCOUpling);
 	//fCOUpling->Select((Int_t)ch->Coupling(),kFALSE); FIXME
     }
-    // 6 
+    // 6 OK
     if (pCH->Applicable(Channel::kIMPEDANCE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Impedance:"));
@@ -156,7 +156,7 @@ ChannelFrame::ChannelFrame(TGCompositeFrame* p, void *pChannel) :
 			    "SetIMPedance(int)");
 	Channel_gf->AddFrame(fIMPedance);
     }
-    // 7
+    // 7 EH OK, could change this to be a text box later
     if (pCH->Applicable(Channel::kPROBE))
     {
 	label = new TGLabel(Channel_gf, new TGHotString("Probe:"));
@@ -379,7 +379,7 @@ void ChannelFrame::Update(void)
     {
 	fBW->SetNumber(pCH->Bandwidth());
     }
-    // 3
+    // 3 
     if (pCH->Applicable(Channel::kBWLO))
     {
 	fBWLo->SetNumber(pCH->Bandwidth_Lo());
@@ -491,19 +491,20 @@ void ChannelFrame::Apply(void)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetAMPoffset
  *
- * Description : 
+ * Description : Set the value to subtract from the differential input
+ *               on the 11A33. page 79
  *
- * Inputs : None
+ * Inputs : val - Ignored
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
- * Unit Tested on:
+ * Unit Tested on: 28-Dec-22
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -511,27 +512,27 @@ void ChannelFrame::Apply(void)
 void ChannelFrame::SetAMPoffset(long val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kAMPOFFSET, fAMPoffset->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kAMPOFFSET, fAMPoffset->GetNumber());
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetBW
  *
- * Description : 
+ * Description : Set the Bandwidth of the input channel. (As aggregagte.)
+ * FIXME: Need to determine the limits
  *
- * Inputs : None
+ * Inputs : val - not used.
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -539,29 +540,26 @@ void ChannelFrame::SetAMPoffset(long val)
 void ChannelFrame::SetBW(long val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    // NOT sure how this works. 
-    cout<< __func__ << endl;
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kBW, fBW->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kBW, fBW->GetNumber());
+    SET_DEBUG_STACK
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetBWHi
  *
- * Description : 
+ * Description : Set the high bandwith. 
  *
- * Inputs : None
+ * Inputs : val not used. 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB Error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -569,45 +567,53 @@ void ChannelFrame::SetBW(long val)
 void ChannelFrame::SetBWHi(long val)
 {    
     SET_DEBUG_STACK;
- cout<< __func__ << endl;}
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kBWHI, fBWHi->GetNumber());
+    SET_DEBUG_STACK
+}
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetBWLo
  *
- * Description : 
+ * Description : Set the lower edge of the bandwidth
  *
- * Inputs : None
+ * Inputs : Val - not used. 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-void ChannelFrame::SetBWLo(long val){     SET_DEBUG_STACK;
-cout<< __func__ << endl;}
+void ChannelFrame::SetBWLo(long val)
+{
+    SET_DEBUG_STACK;
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kBWHI, fBWHi->GetNumber());
+    SET_DEBUG_STACK
+}
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : Set Coupling
  *
- * Description : 
+ * Description : set DC/AC/OFF
  *
- * Inputs : None
+ * Inputs : val - one of the enum COUPLING values in the drop down list. 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
- * Unit Tested on:
+ * Unit Tested on: 28-Dec-22
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -615,11 +621,9 @@ cout<< __func__ << endl;}
 void ChannelFrame::SetCOUpling(int val)
 {
     SET_DEBUG_STACK;
-#if 0
-    cout<< __func__ << " " << val << endl;
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kCCOUPLING, (COUPLING) val);
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->Coupling((COUPLING) val);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -655,19 +659,20 @@ void ChannelFrame::SetIMPedance(int val)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetMNSCoupling
  *
- * Description : 
+ * Description : Set the minus input coupling (on a differential amplifier) 
+ *               coupling value. 
  *
- * Inputs : None
+ * Inputs : value which emulates the order on enum COUPLING 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB ERROR
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -675,27 +680,27 @@ void ChannelFrame::SetIMPedance(int val)
 void ChannelFrame::SetMNSCoupling(int val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kMNSCOUPLING, (COUPLING) val);
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kMNSCOUPLING, (COUPLING) val);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetMNSOffset
  *
- * Description : 
+ * Description : Set the offset to the Minus input channel 
+ *               on a differential amplifier. 
  *
- * Inputs : None
+ * Inputs : val - ignored
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -703,56 +708,54 @@ void ChannelFrame::SetMNSCoupling(int val)
 void ChannelFrame::SetMNSOffset(long val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kMNSOFFSET, fMNSOffset->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kMNSOFFSET, fMNSOffset->GetNumber());
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetOFFset
  *
- * Description : 
+ * Description : Set the trace offset for the channel
  *
- * Inputs : None
+ * Inputs : val ignored. 
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
 void ChannelFrame::SetOFFset(long val)
 { 
-    cout<< __func__ << endl;
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kOFFSET, fOFFset->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kOFFSET, fOFFset->GetNumber());
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetPLSCoupling
  *
- * Description : 
+ * Description : Set the Coupling to the Plus input channel 
+ *               on a differential amplifier. 
  *
- * Inputs : None
+ * Inputs : val - value which emulates the order on enum COUPLING
  *
  * Returns : None
  *
  * Error Conditions :
  *
- * Unit Tested on:
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -760,27 +763,27 @@ void ChannelFrame::SetOFFset(long val)
 void ChannelFrame::SetPLSCoupling(int val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kPLSCOUPLING, (COUPLING) val);
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kPLSCOUPLING, (COUPLING) val);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetPLSOffset
  *
- * Description : 
+ * Description : Set the offset to the Plus input channel 
+ *               on a differential amplifier.
  *
- * Inputs : None
+ * Inputs : val - ignored
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB Error
  *
- * Unit Tested on:
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -788,55 +791,54 @@ void ChannelFrame::SetPLSCoupling(int val)
 void ChannelFrame::SetPLSOffset(long val)
 {
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kPLSOFFSET, fPLSOffset->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kPLSOFFSET, fPLSOffset->GetNumber());
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetPROTect
  *
- * Description : 
+ * Description : Protects the setting on the differential amplifer
  *
  * Inputs : None
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB Error
  *
- * Unit Tested on:
+ * Unit Tested on: 28-Dec-22
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-void ChannelFrame::SetPROTect()
+void ChannelFrame::SetPROTect(void)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kPROTECT, (bool)fPROTect->GetState());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kPROTECT, (bool)fPROTect->GetState());
+    SET_DEBUG_STACK;
+
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetSENsitivity
  *
- * Description : 
+ * Description : Set the sensitivity numbers
  *
- * Inputs : None
+ * Inputs : val - ignored
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -844,39 +846,35 @@ void ChannelFrame::SetPROTect()
 void ChannelFrame::SetSENsitivity(long val)
 { 
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    cout<< __func__ << " " << fSENsitivity->GetNumber() << endl;
-    ch->SendCommand(Channel::kSENSITIVITY, fSENsitivity->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kSENSITIVITY, fSENsitivity->GetNumber());
+    SET_DEBUG_STACK;
 }
 
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetVCOffset
  *
- * Description : 
+ * Description : Differential amplifer compensation offset
  *
- * Inputs : None
+ * Inputs : val - ignored
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
 void ChannelFrame::SetVCOffset(long val)
 { 
-    cout<< __func__ << endl;
     SET_DEBUG_STACK;
-#if 0
-    ChannelGPIB* ch = (ChannelGPIB *) fChannelGPIB;
-    ch->SendCommand(Channel::kVCOFFSET, fVCOffset->GetNumber());
-#endif
+    Channel*  pCH = (Channel*) fpChannel;
+    pCH->SendCommand(Channel::kVCOFFSET, fVCOffset->GetNumber());
+    SET_DEBUG_STACK;
 }
