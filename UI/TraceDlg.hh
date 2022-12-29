@@ -19,9 +19,8 @@
  */
 #ifndef __TRACEDLG_hh_
 #define __TRACEDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
+#  include <RQ_OBJECT.h>
+#  include <TGFrame.h>
 
 class TraceDlg : public TGTransientFrame
 {
@@ -40,9 +39,9 @@ public:
 private:
 
     /// Build the Ok and Cancel Buttons
-    void BuildButtonBox();
-    void BuildDisplayArea();
-    void FillDisplayArea();
+    void BuildButtonBox(void);
+    void BuildDisplayArea(void);
+    void FillDisplayArea(void);
 };
 
 #endif

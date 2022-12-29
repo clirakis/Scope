@@ -19,9 +19,8 @@
  */
 #ifndef __TRACEFRAME_hh_
 #define __TRACEFRAME_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
+#  include <RQ_OBJECT.h>
+#  include <TGFrame.h>
 
 class TGLabel;
 class TGComboBox;
@@ -32,7 +31,12 @@ class TraceFrame : public TGVerticalFrame
 {
     ClassDef(TraceFrame, 0);
 public:
-    TraceFrame(TGCompositeFrame*, void *,unsigned char  );
+    /*!
+     * A frame to hold the trace data, inputs are
+     * parent frame
+     * num - trace number. 
+     */
+    TraceFrame(TGCompositeFrame* parent, unsigned char trace_number );
     ~TraceFrame();
 
     void Apply(void);   // Get any changed commands
@@ -47,6 +51,11 @@ public:
     void EditDescription(void);
 
 private:
+    UInt_t         fNumber;      // Trace number
+
+    /*
+     * All of the properties associated with the TRACE command. 
+     */
     TGComboBox*    fACCumulate;
     TGComboBox*    fACState;
     TGTextButton*  fDescription;
@@ -55,6 +64,10 @@ private:
     TGLabel*       fXUNit;
     TGLabel*       fYUNit;
     TGCheckButton* fDisplay;
+
+    /*
+     * All of the properties assocated with the ADJTrace command. 
+     */
 };
 
 

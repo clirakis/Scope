@@ -22,18 +22,13 @@ using namespace std;
 #include <string>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
-#include <TGButton.h>
-#include <TGTextEntry.h>
 #include <TGNumberEntry.h>
 #include <TGComboBox.h>
-#include <TGMsgBox.h>
 
 /// Local Includes.
 #include "debug.h"
+#include "CLogger.hh"
 #include "TraceFrame.hh"
 #include "DSA602.hh"
 #include "Trace.hh"
@@ -59,10 +54,14 @@ using namespace std;
  *
  *******************************************************************
  */
-TraceFrame::TraceFrame(TGCompositeFrame* p, void *c, unsigned char n) : TGVerticalFrame(p, 100,300)
+TraceFrame::TraceFrame(TGCompositeFrame* p, unsigned char n) : TGVerticalFrame(p, 100,300)
 {
+    SET_DEBUG_STACK;
     const Int_t Width = 120;
     TGLabel*   label;
+
+    // Store the trace number this represents. Starts at 1 not 0.
+    fNumber = n;
 
     TGGroupFrame *Trace_gf = new TGGroupFrame( this, "Trace data", 
 						 kHorizontalFrame);
@@ -154,37 +153,38 @@ TraceFrame::TraceFrame(TGCompositeFrame* p, void *c, unsigned char n) : TGVertic
     Resize();
     p->AddFrame( this, L);
     Update();
-
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : TraceFrame Destructor
  *
- * Description : 
+ * Description : Clean up
  *
  * Inputs : None
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : NONE
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-TraceFrame::~TraceFrame()
+TraceFrame::~TraceFrame(void)
 {
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : Update
  *
- * Description : 
+ * Description : Update the parameters for this trace number. 
  *
  * Inputs : None
  *
@@ -201,12 +201,20 @@ TraceFrame::~TraceFrame()
  */
 void TraceFrame::Update(void)
 {
-    DSA602* ptr   = DSA602::GetThis();
-    WFMPRE* pWFM  = ptr->GetWFMPRE();
-    int n;
+    SET_DEBUG_STACK;
+    DSA602*   scope   = DSA602::GetThis();
+    Trace *   pTrace  = scope->GetTrace();
+    AdjTrace* pT      = pTrace->GetData(fNumber-1);    
 
-    pWFM->Update();
-    //cout << "Trace DLG Update: " << *ch << endl;
+    // Get the current Data. 
+    if(pT)
+	pT->Update();
+    else
+    {
+	CLogger::GetThis()->Log("# TraceFrame::Update number error. %d\n",
+				fNumber);
+	return;
+    }
 #if 0
     fACCumulate->Select((Int_t)pWFM->ACCumulate(),kFALSE);
     fACState->Select((Int_t)pWFM->ACState(),kFALSE);
@@ -227,6 +235,7 @@ void TraceFrame::Update(void)
 	fDisplay->SetState(kButtonUp, kFALSE);
     }
 #endif
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -250,47 +259,201 @@ void TraceFrame::Update(void)
  */
 void TraceFrame::Apply(void)
 {
+    SET_DEBUG_STACK;
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void TraceFrame::SetACCumulate(int val)
 {
+    SET_DEBUG_STACK;
     cout<< __func__ << " " << val << endl;
 #if 0
     TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
     ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
 #endif
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void TraceFrame::SetACState(int val)
 {
+    SET_DEBUG_STACK;
     cout<< __func__ << " " << val << endl;
 #if 0
     TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
     ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
 #endif
+    SET_DEBUG_STACK;
 }
 
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void TraceFrame::SetGRLocation(int val)
 {
+    SET_DEBUG_STACK;
     cout<< __func__ << " " << val << endl;
     //TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
     //ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name :
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void TraceFrame::SetWFMCalc(int val)
 {
+    SET_DEBUG_STACK;
     cout<< __func__ << " " << val << endl;
     //TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
     //ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void  TraceFrame::SetDisplay(void)
 {
-    DSA602* ptr   = DSA602::GetThis();
+    SET_DEBUG_STACK;
 #if 0
+    DSA602* ptr   = DSA602::GetThis();
     TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
     Bool_t val    = fDisplay->GetState();
     int n         = ch->TraceNumber();
     ptr->SetDisplayTrace(n, val);
 #endif
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */
 void TraceFrame::EditDescription(void)
 {
+    SET_DEBUG_STACK;
     new DescDlg(this, NULL);
+    SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : 
+ *
+ * Description : 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on:
+ *
+ * Unit Tested by:
+ *
+ *
+ *******************************************************************
+ */

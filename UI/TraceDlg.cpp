@@ -25,19 +25,15 @@ using namespace std;
 #include <stdlib.h>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
 #include <TGButton.h>
 #include <TGTextEntry.h>
-#include <TGMsgBox.h>
 #include <TGTab.h>
 #include <TVirtualX.h>
 
-
 /// Local Includes.
 #include "debug.h"
+#include "CLogger.hh"
 #include "TraceDlg.hh"
 #include "TraceFrame.hh"
 #include "Trace.hh"
@@ -67,6 +63,7 @@ using namespace std;
 TraceDlg::TraceDlg(const TGWindow *main)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 80)
 {
+    SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
 
     Connect("CloseWindow()", "TraceDlg", this, "CloseWindow()");
@@ -95,6 +92,7 @@ TraceDlg::TraceDlg(const TGWindow *main)
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     MapWindow();
     fClient->WaitFor(this);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -116,8 +114,9 @@ TraceDlg::TraceDlg(const TGWindow *main)
  *
  *******************************************************************
  */
-void TraceDlg::BuildButtonBox()
+void TraceDlg::BuildButtonBox(void)
 {
+    SET_DEBUG_STACK;
     TGButton *tb;
 
     // Create a frame to hold the buttons.
@@ -133,6 +132,7 @@ void TraceDlg::BuildButtonBox()
 
     ButtonFrame->Resize();
     AddFrame(ButtonFrame, new TGLayoutHints(kLHintsExpandX, 2, 2, 2, 2));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -154,26 +154,29 @@ void TraceDlg::BuildButtonBox()
  *
  *******************************************************************
  */
-void TraceDlg::BuildDisplayArea()
+void TraceDlg::BuildDisplayArea(void)
 {
-    char title[32];
+    SET_DEBUG_STACK;
+    DSA602*       ptr    = DSA602::GetThis();
+    Trace*        pTrace = ptr->GetTrace();
+    unsigned char n      = pTrace->GetNTrace();
+    char          title[32];
     TGCompositeFrame* tf;
-    DSA602* ptr     = DSA602::GetThis();
-    Trace* pTrace   = ptr->GetTrace();
-    unsigned char n = pTrace->GetNTrace();
-    unsigned char i;
 
     TGTab *Tab = new TGTab(this, 600, 600);
     TGLayoutHints *L5 = new TGLayoutHints(kLHintsTop | kLHintsExpandX |
                                           kLHintsExpandY, 2, 2, 5, 1);
-    for (i=0;i<n;i++)
+
+    // Add a tab per available trace. 
+    for (uint8_t i=0;i<n;i++)
     {
 	sprintf(title,"TRACE%1d", i);
 	tf = Tab->AddTab(title);
-	new TraceFrame(tf, ptr, i+1);
+	new TraceFrame(tf, i+1);
     }
     Tab->Resize();
     AddFrame(Tab, L5);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -195,9 +198,10 @@ void TraceDlg::BuildDisplayArea()
  *
  *******************************************************************
  */
-void TraceDlg::CloseWindow()
+void TraceDlg::CloseWindow(void)
 {
     // Called when closed via window manager action.
+    SET_DEBUG_STACK;
 
     delete this;
 }
@@ -223,8 +227,9 @@ void TraceDlg::CloseWindow()
  *
  *******************************************************************
  */
-void TraceDlg::Done()
+void TraceDlg::Done(void)
 {
+    SET_DEBUG_STACK;
     SendCloseMessage();
 }
 /**
@@ -247,8 +252,9 @@ void TraceDlg::Done()
  *
  *******************************************************************
  */
-void TraceDlg::DoClose()
+void TraceDlg::DoClose(void)
 {
+    SET_DEBUG_STACK;
    // Handle close button.
     SendCloseMessage();
 }
