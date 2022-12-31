@@ -19,10 +19,8 @@
  */
 #ifndef __DESCDLG_hh_
 #define __DESCDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
-
+#  include <RQ_OBJECT.h>
+#  include <TGFrame.h>
 class TGLabel;
 class TGComboBox;
 class TGCheckBox;

@@ -9,6 +9,7 @@
 #	18-Dec-22       CBL     Most base DSA602 functionality in library now
 #       27-Dec-22       CBL     MValue and MeasurementA are gone/condensed 
 #                               and in the library. 
+#       31-Dec-22       CBL     Moved Input to the library. 
 #
 ######################################################################
 # Machine specific stuff
@@ -28,7 +29,7 @@ LIBS = -L$(DRIVE)/lib_linux -lDSA602 -lmygpib -lutility -L/usr/local/lib \
 SRC     = 
 SRCCPP  = main.cpp FFTDlg.cpp TimeDlg.cpp ChannelFrame.cpp \
 	ModuleDlg.cpp TraceDlg.cpp TraceFrame.cpp DescDlg.cpp \
-	Description.cpp Input.cpp MeasDlg.cpp SPlot.cpp \
+	Description.cpp MeasDlg.cpp SPlot.cpp \
 	WaveDlg.cpp UserSignals.cpp S_Dict.cpp
 
 SRCS    = $(SRC) $(SRCCPP)

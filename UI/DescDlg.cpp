@@ -14,6 +14,13 @@
  * Classification : Unclassified
  *
  * References :
+ * DSA602 Programming Reference Manual.
+ * DESCRIPTION is part of a TRACE command and the details can be found on 
+ *             page 294 of the manual. 
+ *
+ * The maximum character length of a trace description is 120 characters. 
+ * The inputs come from the various installed modules. 
+ * The functions are defined in Input.hh
  *
  *******************************************************************
  */
@@ -22,13 +29,9 @@ using namespace std;
 #include <string>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
-#include <TGFrame.h>
 #include <TGLabel.h>
 #include <TGButton.h>
 #include <TGComboBox.h>
-#include <TGMsgBox.h>
 #include <TVirtualX.h>
 
 /// Local Includes.
@@ -38,12 +41,13 @@ using namespace std;
 #include "DSA602.hh"
 #include "DSA602_Utility.hh"
 
+
 /**
  ******************************************************************
  *
  * Function Name : DescDlg  Constructor
  *
- * Description : 
+ * Description : Create the waveform description. 
  *
  * Inputs : main - pointer to parent window
  *          p - pointer to scope info
@@ -62,6 +66,7 @@ using namespace std;
 DescDlg::DescDlg(const TGWindow *main, void *p)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 40)
 {
+    SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
 
     Connect("CloseWindow()", "DescDlg", this, "CloseWindow()");
@@ -91,6 +96,7 @@ DescDlg::DescDlg(const TGWindow *main, void *p)
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     MapWindow();
     fClient->WaitFor(this);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -114,6 +120,7 @@ DescDlg::DescDlg(const TGWindow *main, void *p)
  */
 void DescDlg::BuildButtonBox()
 {
+    SET_DEBUG_STACK;
     TGButton *tb;
 
     // Create a frame to hold the buttons.
@@ -129,6 +136,7 @@ void DescDlg::BuildButtonBox()
 
     ButtonFrame->Resize();
     AddFrame(ButtonFrame, new TGLayoutHints(kLHintsExpandX, 2, 2, 2, 2));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -152,14 +160,15 @@ void DescDlg::BuildButtonBox()
  */
 void DescDlg::BuildDisplayArea()
 {
+    SET_DEBUG_STACK;
     const Int_t  Width  = 100;
     DSA602* ptr         = DSA602::GetThis();
     StatusAndEvent* pSE = ptr->pStatusAndEvent();
     unsigned char n     = pSE->GetNModule();
     Module*      pModule;
     TGLabel*     label;
-    Int_t        i, j;
     Char_t       tmp[8];
+    uint8_t      i;
 
     TGGroupFrame *gf = new TGGroupFrame( this, "Trace Description", 
                                          kHorizontalFrame);
@@ -170,11 +179,10 @@ void DescDlg::BuildDisplayArea()
     label = new TGLabel(gf, new TGHotString("Function:"));
     gf->AddFrame(label);
     fFunction[0] = new TGComboBox(gf);
-    i=0;
-    while (Input::FString[i] != NULL)
+
+    for (i=0; i<Input::kFUNCTION_NONE+1;i++)
     {
 	fFunction[0]->AddEntry(Input::FString[i], i);
-	i++;
     }
     fFunction[0]->Select(0,kFALSE);
     fFunction[0]->Resize( Width, 20);
@@ -191,7 +199,7 @@ void DescDlg::BuildDisplayArea()
     label = new TGLabel(gf, new TGHotString("Module:"));
     gf->AddFrame(label);
     fInput[0] = new TGComboBox(gf);
-    j = 0;
+    uint8_t j = 0;
     for (i=0;i<n;i++)
     {
 	memset(tmp, 0, sizeof(tmp));
@@ -275,6 +283,7 @@ void DescDlg::BuildDisplayArea()
 
     //Resize();
     AddFrame(gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -298,6 +307,7 @@ void DescDlg::BuildDisplayArea()
  */
 void DescDlg::CloseWindow()
 {
+    SET_DEBUG_STACK;
     // Called when closed via window manager action.
 
     delete this;
@@ -326,6 +336,7 @@ void DescDlg::CloseWindow()
  */
 void DescDlg::Done()
 {
+    SET_DEBUG_STACK;
     SendCloseMessage();
 }
 /**
@@ -350,6 +361,7 @@ void DescDlg::Done()
  */
 void DescDlg::DoClose()
 {
+    SET_DEBUG_STACK;
    // Handle close button.
     SendCloseMessage();
 }
@@ -375,4 +387,6 @@ void DescDlg::DoClose()
  */
 void DescDlg::Update(void)
 {
+    SET_DEBUG_STACK;
+    SET_DEBUG_STACK;
 }

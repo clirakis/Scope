@@ -266,6 +266,7 @@ void SPlot::AddControls(void)
 
     // --
     TGHButtonGroup *gf = new TGHButtonGroup( HFrame, "Trace:");
+    // Make sure the GF acts in a radio fashion. Not sure this works. 
     gf->SetRadioButtonExclusive(kTRUE);
 
     /*
@@ -274,7 +275,7 @@ void SPlot::AddControls(void)
      */
     for (i=0;i<8;i++)
     {
-	sprintf( title, "%d", i);
+	sprintf( title, "%d", i+1);
 	/*
 	 * Add the radio button with a trace number given by i. 
 	 */
@@ -1173,11 +1174,11 @@ void SPlot::DoSaveAs(void)
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : NONE
  *
- * Unit Tested on:
+ * Unit Tested on: 31-Dec-22
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -1187,8 +1188,7 @@ void SPlot::GetData(void)
     double *Y, *X;
     DSA602* scope = (DSA602*) fScope;
     Int_t retval;
-
-    Int_t TraceNumber = 0;
+    uint8_t TraceNumber = scope->GetSelectedTrace();
 
 #if 0
     /*
@@ -1271,28 +1271,11 @@ void SPlot::SetTrace(void)
      */
     TGButton *btn = (TGButton *) gTQSender;
     Int_t id      = btn->WidgetId();
-    /* 
-     * Make sure the radio behaviour is followed. 
-     * uncheck the old button. 
-     */
-    for (Int_t i=0; i<8; i++)
-    {
-	/*
-	 * loop over all the buttons. Make sure they aren't set unless
-	 * they are the desired button. 
-	 * The ids given are in the order of the buttons. This makes it easy
-	 * to make a match on which button needs to be pressed. 
-	 */
-	if ((i!=id) && (fTrace[i]->IsOn()))
-	{
-	    fTrace[i]->SetState(kButtonUp);
-	}
-    }
+
     /*
      * Finally record the trace to be downloaded. 
-     * FIXME ---- The SetDisplayTrace function is not shall we say functional.
      */
-    scope->SetDisplayTrace(id, true);
+    scope->SetDisplayTrace(id);
     SET_DEBUG_STACK;
 }
 /**
