@@ -39,15 +39,11 @@ public:
     TraceFrame(TGCompositeFrame* parent, unsigned char trace_number );
     ~TraceFrame();
 
-    void Apply(void);   // Get any changed commands
     void Update(void);  // Update from mainframe. 
 
     // slots
     void SetACCumulate(int val);
-    void SetACState(int val);
     void SetGRLocation(int val);
-    void SetWFMCalc(int val);
-    void SetDisplay(void);
     void EditDescription(void);
 
 private:
@@ -57,13 +53,12 @@ private:
      * All of the properties associated with the TRACE command. 
      */
     TGComboBox*    fACCumulate;
-    TGComboBox*    fACState;
+    TGLabel*       fACState;        // Read only. 
     TGTextButton*  fDescription;
     TGComboBox*    fGRLocation;
-    TGComboBox*    fWFMCalc;
-    TGLabel*       fXUNit;
-    TGLabel*       fYUNit;
-    TGCheckButton* fDisplay;
+    TGLabel*       fWFMCalc;        // Read only
+    TGLabel*       fXUNit;          // Read only
+    TGLabel*       fYUNit;          // Read only
 
     /*
      * All of the properties assocated with the ADJTrace command. 

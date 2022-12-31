@@ -14,6 +14,11 @@
  * Classification : Unclassified
  *
  * References :
+ * Trace.cpp
+ * ADJtrace - page 44, Where is the trace on the screen?
+ *    AdjTrace.cpp
+ * Trace - page 292, How is the trace actually defined. 
+ *    DefTrace.cpp
  *
  *******************************************************************
  */
@@ -37,7 +42,7 @@ using namespace std;
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : TraceFrame
  *
  * Description : 
  *
@@ -67,19 +72,10 @@ TraceFrame::TraceFrame(TGCompositeFrame* p, unsigned char n) : TGVerticalFrame(p
 						 kHorizontalFrame);
 
     // Rows, Columns, Interval between frames, hints
-    Trace_gf->SetLayoutManager(new TGMatrixLayout(Trace_gf, 8, 2, 10, 2));
+    Trace_gf->SetLayoutManager(new TGMatrixLayout(Trace_gf, 7, 2, 10, 2));
     AddFrame(Trace_gf);
 
     // 1
-    label = new TGLabel(Trace_gf, new TGHotString(" "));
-    Trace_gf->AddFrame(label);
-    
-    fDisplay = new TGCheckButton(Trace_gf, "Display");
-    Trace_gf->AddFrame(fDisplay);
-    fDisplay->Connect("Clicked()", "TraceFrame", this, "SetDisplay()");
-
-
-    // 2
     label = new TGLabel(Trace_gf, new TGHotString("Accumulate:"));
     Trace_gf->AddFrame(label);
     fACCumulate = new TGComboBox( Trace_gf);
@@ -91,18 +87,14 @@ TraceFrame::TraceFrame(TGCompositeFrame* p, unsigned char n) : TGVerticalFrame(p
 		       "SetACCumulate(int)");
     Trace_gf->AddFrame(fACCumulate);
 
-    // 3
+    // 2
     label = new TGLabel(Trace_gf, new TGHotString("AC State:"));
     Trace_gf->AddFrame(label);
-    fACState = new TGComboBox( Trace_gf);
-    fACState->AddEntry("Enhanced",      1);
-    fACState->AddEntry("Not Enhanced",  0);
+    fACState = new TGLabel(Trace_gf, new TGHotString("Enhanced"));
     fACState->Resize( Width,20);
-    fACState->Connect("Selected(int)", "TraceFrame", this, 
-		       "SetACState(int)");
     Trace_gf->AddFrame(fACState);
 
-    // 4
+    // 3
     label        = new TGLabel(Trace_gf, new TGHotString("Description:"));
     Trace_gf->AddFrame(label);
     fDescription = new TGTextButton(Trace_gf, 
@@ -111,7 +103,7 @@ TraceFrame::TraceFrame(TGCompositeFrame* p, unsigned char n) : TGVerticalFrame(p
     Trace_gf->AddFrame(fDescription);
     fDescription->Connect("Clicked()","TraceFrame",this,"EditDescription()");
 
-    // 5
+    // 4
     label = new TGLabel(Trace_gf, new TGHotString("Graticule Loc:"));
     Trace_gf->AddFrame(label);
     fGRLocation = new TGComboBox( Trace_gf);
@@ -123,25 +115,21 @@ TraceFrame::TraceFrame(TGCompositeFrame* p, unsigned char n) : TGVerticalFrame(p
     Trace_gf->AddFrame(fGRLocation);
 
 
-    // 6
+    // 5
     label = new TGLabel(Trace_gf, new TGHotString("Waveform calc:"));
     Trace_gf->AddFrame(label);
-    fWFMCalc = new TGComboBox( Trace_gf);
-    fWFMCalc->AddEntry("High Precision",      1);
-    fWFMCalc->AddEntry("Fast",  0);
+    fWFMCalc = new TGLabel( Trace_gf, new TGHotString("Fast (integer)"));
     fWFMCalc->Resize( Width,20);
-    fWFMCalc->Connect("Selected(int)", "TraceFrame", this, 
-			 "SetWFMCalc(int)");
     Trace_gf->AddFrame(fWFMCalc);
 
-    // 7
+    // 6
     label  = new TGLabel(Trace_gf, new TGHotString("X Unit:"));
     Trace_gf->AddFrame(label);
     fXUNit = new TGLabel(Trace_gf, new TGHotString("Waveform calc:"));
     Trace_gf->AddFrame(fXUNit);
 
 
-    // 8
+    // 7
     label  = new TGLabel(Trace_gf, new TGHotString("Y Unit:"));
     Trace_gf->AddFrame(label);
     fYUNit = new TGLabel(Trace_gf, new TGHotString("Waveform calc:"));
@@ -204,37 +192,52 @@ void TraceFrame::Update(void)
     SET_DEBUG_STACK;
     DSA602*   scope   = DSA602::GetThis();
     Trace *   pTrace  = scope->GetTrace();
-    AdjTrace* pT      = pTrace->GetData(fNumber-1);    
 
     // Get the current Data. 
-    if(pT)
-	pT->Update();
+    if(pTrace)
+    {
+	//AdjTrace* pAdjT   = pTrace->GetAdj(fNumber-1);
+	DefTrace* pDefT   = pTrace->GetDef(fNumber-1);
+
+	pTrace->Update();
+	/*
+	 * These are all values from issuing the command TR <ai>? 
+	 */
+	fACCumulate->Select( (Int_t)pDefT->Accumulate(false), kFALSE);
+
+	if(pDefT->ACState(false))
+	    fACState->SetText("Enhanced");
+	else
+	    fACState->SetText("Not Enhanced");
+
+	fGRLocation->Select((Int_t)pDefT->GRLocation(false),kFALSE);
+	if (pDefT->WFMCalc(false))
+	    fWFMCalc->SetText("High Precision (floating point)");
+	else
+	    fWFMCalc->SetText("Fast (integer)");
+
+	fDescription->SetText( pDefT->Description(false));
+	fXUNit->SetText(UnitString(pDefT->XUNIT(false)));
+	fYUNit->SetText(UnitString(pDefT->YUNIT(false)));
+#if 0
+
+	uint8_t n = pTrace->GetNTrace();
+// FIXME
+	if (ptr->GetDisplayTrace(n))
+	{
+	    fDisplay->SetState(kButtonDown, kFALSE);
+	}
+	else
+	{
+	    fDisplay->SetState(kButtonUp, kFALSE);
+	}
+#endif
+    }
     else
     {
 	CLogger::GetThis()->Log("# TraceFrame::Update number error. %d\n",
 				fNumber);
-	return;
     }
-#if 0
-    fACCumulate->Select((Int_t)pWFM->ACCumulate(),kFALSE);
-    fACState->Select((Int_t)pWFM->ACState(),kFALSE);
-    fGRLocation->Select((Int_t)pWFM->GRLocation(),kFALSE);
-    fWFMCalc->Select((Int_t)ch->WFMTYPE(),kFALSE);
-    fDescription->SetText( pWFM->DEScription());
-    fXUNit->SetText(UnitString(pWFM->XUnit()));
-    fYUNit->SetText(UnitString(pWFM->YUnit()));
-    n = ch->TraceNumber();
-
-// FIXME
-    if (ptr->GetDisplayTrace(n))
-    {
-	fDisplay->SetState(kButtonDown, kFALSE);
-    }
-    else
-    {
-	fDisplay->SetState(kButtonUp, kFALSE);
-    }
-#endif
     SET_DEBUG_STACK;
 }
 /**
@@ -257,19 +260,28 @@ void TraceFrame::Update(void)
  *
  *******************************************************************
  */
-void TraceFrame::Apply(void)
-{
-    SET_DEBUG_STACK;
-    SET_DEBUG_STACK;
-}
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetACCumulate
  *
- * Description : 
+ * Description : Set the trace accumulation to one of the input values. 
  *
- * Inputs : None
+ * Inputs : val
+ *      kINFPERSIST - Selects infinite persistance. In this mode the 
+ *                    waveform record points remain on the display 
+ *                    indefinitely until some event clears the trace display. 
+ * 
+ *      kACC_OFF    - returns the trace to normal display mode. In normal
+ *                    display mode, waveform record points are cleard 
+ *                    from the display each time a new waveform record
+ *                    is displayed. 
+ *
+ *      kVARPERSIST - selects variable persistance mode. In this mode
+ *                    the waveform records remain on the display for 
+ *                    the length of time specified by DISPLAY PERSISTANCE
+ *                    before being cleared from the display.
+ *
  *
  * Returns : None
  *
@@ -285,41 +297,60 @@ void TraceFrame::Apply(void)
 void TraceFrame::SetACCumulate(int val)
 {
     SET_DEBUG_STACK;
-    cout<< __func__ << " " << val << endl;
-#if 0
-    TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
-    ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
-#endif
+    DSA602*   scope   = DSA602::GetThis();
+    Trace *   pTrace  = scope->GetTrace();
+
+    // Get the current Data. 
+    if(pTrace)
+    {
+	/*
+	 * fNumber is the current trace number (1) but the index 
+	 * starts at zero. 
+	 */
+	DefTrace *pdt = pTrace->GetDef(fNumber-1);
+	pdt->Accumulate((ACCUMULATE) val);
+    }
     SET_DEBUG_STACK;
 }
+
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetGRLocation
  *
- * Description : 
+ * Description : Moves the selected waveform to the upper or lower 
+ *               graticule. 
  *
  * Inputs : None
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB error
  *
- * Unit Tested on:
+ * Unit Tested on: 31-Dec-22
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-void TraceFrame::SetACState(int val)
+void TraceFrame::SetGRLocation(int val)
 {
     SET_DEBUG_STACK;
-    cout<< __func__ << " " << val << endl;
-#if 0
-    TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
-    ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
-#endif
+    DSA602*   scope   = DSA602::GetThis();
+    Trace *   pTrace  = scope->GetTrace();
+
+    // Get the current Data. 
+    if(pTrace)
+    {
+	/*
+	 * fNumber is the current trace number (1) but the index 
+	 * starts at zero. 
+	 */
+	DefTrace *pdt = pTrace->GetDef(fNumber-1);
+	bool upper = (val==1);
+	pdt->SetGRLocation(upper);
+    }
     SET_DEBUG_STACK;
 }
 
@@ -343,74 +374,7 @@ void TraceFrame::SetACState(int val)
  *
  *******************************************************************
  */
-void TraceFrame::SetGRLocation(int val)
-{
-    SET_DEBUG_STACK;
-    cout<< __func__ << " " << val << endl;
-    //TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
-    //ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
-    SET_DEBUG_STACK;
-}
-/**
- ******************************************************************
- *
- * Function Name :
- *
- * Description : 
- *
- * Inputs : None
- *
- * Returns : None
- *
- * Error Conditions :
- *
- * Unit Tested on:
- *
- * Unit Tested by:
- *
- *
- *******************************************************************
- */
-void TraceFrame::SetWFMCalc(int val)
-{
-    SET_DEBUG_STACK;
-    cout<< __func__ << " " << val << endl;
-    //TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
-    //ch->SendCommand(Trace::CACCUMULATE, (ACCUMULATE) val);
-    SET_DEBUG_STACK;
-}
-/**
- ******************************************************************
- *
- * Function Name : 
- *
- * Description : 
- *
- * Inputs : None
- *
- * Returns : None
- *
- * Error Conditions :
- *
- * Unit Tested on:
- *
- * Unit Tested by:
- *
- *
- *******************************************************************
- */
-void  TraceFrame::SetDisplay(void)
-{
-    SET_DEBUG_STACK;
-#if 0
-    DSA602* ptr   = DSA602::GetThis();
-    TraceGPIB* ch = (TraceGPIB *) fTraceGPIB;
-    Bool_t val    = fDisplay->GetState();
-    int n         = ch->TraceNumber();
-    ptr->SetDisplayTrace(n, val);
-#endif
-    SET_DEBUG_STACK;
-}
+
 /**
  ******************************************************************
  *
