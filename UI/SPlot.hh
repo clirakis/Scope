@@ -103,5 +103,9 @@ private:
     bool CreateGraphObjects();
     bool CleanGraphObjects();
     void SetCurrentFileName(const char *File);
+
+    bool SaveWaveform(void);
+
+    bool SaveParameters(void);
 };
 #endif

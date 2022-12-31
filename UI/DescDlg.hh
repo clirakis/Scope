@@ -47,9 +47,11 @@ private:
     void BuildDisplayArea();
     void FillDisplayArea();
 
+    void*          pPtrDefTrace;
     TGComboBox*    fFunction[2];
     TGComboBox*    fInput[2];
     TGComboBox*    fWindow;
+    TGLabel*       fDescription; // The current definition string. 
     TGCheckButton* fTime;
 };
 

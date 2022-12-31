@@ -90,6 +90,9 @@ static const char *SPSaveTypes[] = {
 enum SVPCommandIdentifiers {
    M_FILE_EXIT=100,
    M_FILE_OPEN,
+   M_FILE_SAVE_AS,
+   M_FILE_SAVE_PARAMETERS,
+   M_FILE_SAVE_WAVEFORM,
    M_FILE_PRINT,
    M_VIEW_TIMEBASE,
    M_VIEW_MODULE,
@@ -156,6 +159,7 @@ static const char *HelpText1 =
 SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) : 
     TGMainFrame( p, w, h,  kVerticalFrame)
 {
+    SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
 
     // Used to store GUI elements that need to be deleted in the destructor.
@@ -194,6 +198,7 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) :
      */
     fScope = (void *) new DSA602( Scope_GPIB_A);
     UpdateTraceButtons();
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -217,6 +222,7 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) :
  */
 SPlot::~SPlot(void)
 {
+    SET_DEBUG_STACK;
     DSA602* s = (DSA602*) fScope;
 
     if (fCurrentFile)
@@ -225,6 +231,7 @@ SPlot::~SPlot(void)
     }
     delete fLastDir;
     delete s;
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -248,6 +255,7 @@ SPlot::~SPlot(void)
  */
 void SPlot::AddControls(void)
 {
+    SET_DEBUG_STACK;
     TGTextButton*      button;
     TGHorizontalFrame* HFrame;
     char title[8];
@@ -288,6 +296,7 @@ void SPlot::AddControls(void)
     HFrame->Resize();
     // --
     this->AddFrame( HFrame, L3);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -312,6 +321,7 @@ void SPlot::AddControls(void)
  */
 void SPlot::AddEmbeddedCanvas(UInt_t w, UInt_t h)
 {
+    SET_DEBUG_STACK;
     TGHorizontalFrame* HFrame;
 
     TGLayoutHints *L1 = new TGLayoutHints(kLHintsTop|kLHintsLeft
@@ -349,6 +359,7 @@ void SPlot::AddEmbeddedCanvas(UInt_t w, UInt_t h)
     //c1->SetEditable(kFALSE);
     //c1->SetCrosshair(1);
     c1->cd();
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -372,6 +383,7 @@ void SPlot::AddEmbeddedCanvas(UInt_t w, UInt_t h)
  */
 void SPlot::CreateMenuBar(void)
 {
+    SET_DEBUG_STACK;
     TGPopupMenu *MenuFile, *MenuView, *MenuHelp;
 	//*MenuEdit
 
@@ -384,8 +396,10 @@ void SPlot::CreateMenuBar(void)
     MenuFile = new TGPopupMenu(gClient->GetRoot());
 
     //MenuFile->AddEntry("O&pen"  , M_FILE_OPEN);
-    //MenuFile->AddEntry("SaveA&s", M_FILE_SAVEAS);
-    MenuFile->AddEntry("P&rint" , M_FILE_PRINT);
+    MenuFile->AddEntry("Save Parameters", M_FILE_SAVE_AS); // gif/jpg etc
+    MenuFile->AddEntry("Save Parameters", M_FILE_SAVE_PARAMETERS);
+    MenuFile->AddEntry("Save Waveform"  , M_FILE_SAVE_WAVEFORM);
+    MenuFile->AddEntry("P&rint"         , M_FILE_PRINT);
 
     MenuFile->AddSeparator();
     MenuFile->AddEntry("E&xit"  , M_FILE_EXIT);
@@ -403,8 +417,8 @@ void SPlot::CreateMenuBar(void)
      * Trace submenus
      ********************************************************/
     TGPopupMenu *TraceCascade = new TGPopupMenu(gClient->GetRoot());
-    TraceCascade->AddEntry("Add", M_TRACE_ADD);
-    TraceCascade->AddEntry("Edit", M_TRACE_EDIT);
+    TraceCascade->AddEntry("Add",    M_TRACE_ADD);
+    TraceCascade->AddEntry("Edit",   M_TRACE_EDIT);
     TraceCascade->AddEntry("Delete", M_TRACE_DELETE);
 
     /*********************************************************
@@ -451,6 +465,7 @@ void SPlot::CreateMenuBar(void)
     AddFrame(MenuBar, 
 	     new TGLayoutHints(kLHintsTop|kLHintsLeft|kLHintsExpandX,
 			       0, 0, 1, 1));
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -474,6 +489,7 @@ void SPlot::CreateMenuBar(void)
  */
 void SPlot::CreateToolBar(void)
 {
+    SET_DEBUG_STACK;
     TString Path;
 
     if(gSystem->Getenv("ROOTSYS") != NULL)
@@ -500,6 +516,7 @@ void SPlot::CreateToolBar(void)
 					 0, 0));
     fToolBar->Connect("Pressed(Int_t)", "SPlot", this, 
 		      "HandleToolBar(Int_t)");
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -523,6 +540,7 @@ void SPlot::CreateToolBar(void)
  */
 void SPlot::HandleToolBar(Int_t id)
 {
+    SET_DEBUG_STACK;
     TGButton *tb;
     TCanvas *c1;
 
@@ -554,6 +572,7 @@ void SPlot::HandleToolBar(Int_t id)
 	OpenAndParseFile( NULL);
 	break;
     }
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -577,6 +596,7 @@ void SPlot::HandleToolBar(Int_t id)
  */
 void SPlot::CreateStatusBar(void)
 {
+    SET_DEBUG_STACK;
     /*
      * Finally add a status bar at the bottom. 
      * parts is the breakup of the 3 subdivisions of the
@@ -588,6 +608,7 @@ void SPlot::CreateStatusBar(void)
     this->AddFrame( fStatusBar,  new 
 		    TGLayoutHints( kLHintsExpandX , 2, 2, 2, 2));
     fStatusBar->SetText("Please Select Data to Display.",0);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -611,6 +632,7 @@ void SPlot::CreateStatusBar(void)
  */
 void SPlot::HandleMenu(Int_t id)
 {
+    SET_DEBUG_STACK;
     char HelpText[512];
     TRootHelpDialog *trh;
     TCanvas *c1;
@@ -627,6 +649,11 @@ void SPlot::HandleMenu(Int_t id)
 	break;
     case M_FILE_SAVEAS:
 	DoSaveAs();
+	break;
+    case M_FILE_SAVE_PARAMETERS:
+    case M_FILE_SAVE_WAVEFORM:
+	new TGMsgBox( gClient->GetRoot(), NULL, "Not implemented", 
+		      "NOT YET IMPLEMENTED", kMBIconExclamation);
 	break;
     case M_FILE_PRINT:
 #if 0
@@ -676,7 +703,8 @@ void SPlot::HandleMenu(Int_t id)
     default:
 	printf("Menu item %d selected\n", id);
 	break;
-   }
+    }
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -700,6 +728,7 @@ void SPlot::HandleMenu(Int_t id)
  */
 void SPlot::SetCurrentFileName(const char *File)
 {
+    SET_DEBUG_STACK;
     /* Delete current file name */
     if (fCurrentFile)
     {
@@ -711,6 +740,7 @@ void SPlot::SetCurrentFileName(const char *File)
 	cout << "Current " << fCurrentFile << endl;
     }
     fStatusBar->SetText( fCurrentFile->Data(), 0);
+    SET_DEBUG_STACK;
 }
 
 /**
@@ -736,6 +766,7 @@ void SPlot::SetCurrentFileName(const char *File)
  */
 void SPlot::DoLoad(void)
 {
+    SET_DEBUG_STACK;
     TGFileInfo fi;
 
     fi.fFileTypes = filetypes;
@@ -744,6 +775,7 @@ void SPlot::DoLoad(void)
     new TGFileDialog( gClient->GetRoot(), 0, kFDOpen, &fi);
     *fLastDir = fi.fIniDir;
     OpenAndParseFile(fi.fFilename);
+    SET_DEBUG_STACK;
 }
 
 /**
@@ -768,8 +800,10 @@ void SPlot::DoLoad(void)
  */
 void SPlot::PlotMe(Int_t Index)
 {
+    SET_DEBUG_STACK;
     gPad->Clear();
     gPad->Update();
+    SET_DEBUG_STACK;
 }
 
 /**
@@ -794,6 +828,7 @@ void SPlot::PlotMe(Int_t Index)
  */
 void SPlot::CloseWindow(void)
 {
+    SET_DEBUG_STACK;
    // Got close message for this MainFrame. Terminates the application.
    gApplication->Terminate(0);
 }
@@ -821,6 +856,7 @@ void SPlot::CloseWindow(void)
 void SPlot::ProcessedEvent(Int_t event, Int_t px, Int_t py, 
 			     TObject *selected)
 {
+    SET_DEBUG_STACK;
     // Statics for rubber band zoom. 
     static Double_t x0, y0, x1, y1;
     static Int_t    pxold, pyold;
@@ -919,6 +955,7 @@ void SPlot::ProcessedEvent(Int_t event, Int_t px, Int_t py,
 	printf("Event %d\n", event);
 	break;
     }
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -942,6 +979,7 @@ void SPlot::ProcessedEvent(Int_t event, Int_t px, Int_t py,
  */
 void SPlot::UnZoom(void)
 {
+    SET_DEBUG_STACK;
     TH1 *h = fGraph->GetHistogram();
     if (h)
     {
@@ -950,6 +988,7 @@ void SPlot::UnZoom(void)
 	h->GetYaxis()->UnZoom();
     }
     gPad->Update();
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -1144,7 +1183,7 @@ bool SPlot::CleanGraphObjects(void)
  */
 void SPlot::DoSaveAs(void)
 {
-
+    SET_DEBUG_STACK;
     TGFileInfo fi;
 
     fi.fFileTypes = SPSaveTypes;
@@ -1162,6 +1201,7 @@ void SPlot::DoSaveAs(void)
 	TCanvas *c1 = fEmbeddedCanvas->GetCanvas();
 	c1->SaveAs(fi.fFilename);
     }
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -1185,6 +1225,7 @@ void SPlot::DoSaveAs(void)
  */
 void SPlot::GetData(void)
 {
+    SET_DEBUG_STACK;
     double *Y, *X;
     DSA602* scope = (DSA602*) fScope;
     Int_t retval;
@@ -1328,4 +1369,100 @@ void SPlot::UpdateTraceButtons(void)
 	    fTrace[i]->SetEnabled(kFALSE);
 	}
     }
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : SaveWaveform
+ *
+ * Description : Save the current waveform on the screen as
+ * well as the approprate descriptive data. 
+ *
+ * Inputs : NONE
+ *
+ * Returns : true on success
+ *
+ * Error Conditions :
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+bool SPlot::SaveWaveform(void)
+{
+    SET_DEBUG_STACK;
+    static const char *SPWaveTypes[] = {
+	"root",          "*.root",
+	"CSV",          "*.csv",
+	0,              0 };
+    TGFileInfo fi;
+
+    fi.fFileTypes = SPWaveTypes;
+    fi.fIniDir    = StrDup(fLastDir->Data());
+
+    new TGFileDialog( gClient->GetRoot(), this, kFDSave, &fi);
+    if (fi.fFilename == NULL)
+    {
+	// No action to be taken!
+	return false;
+    }
+    cout << "Filename " << fi.fFilename << endl;
+    if (strlen(fi.fFilename) > 0)
+    {
+	// We have something to save. 
+    }
+    SET_DEBUG_STACK;
+    return true;
+}
+
+/**
+ ******************************************************************
+ *
+ * Function Name : SaveParameters
+ *
+ * Description : Save all the approprate parameters to setup the 
+ *               scope in an idential fashion as needed. Text based. 
+ *
+ * Inputs : None
+ *
+ * Returns :
+ *
+ * Error Conditions :
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+bool SPlot::SaveParameters(void)
+{
+    SET_DEBUG_STACK;
+    static const char *SPParamTypes[] = {
+	"root",          "*.txt",
+	"CSV",          "*.root",
+	0,              0 };
+    TGFileInfo fi;
+
+    fi.fFileTypes = SPParamTypes;
+    fi.fIniDir    = StrDup(fLastDir->Data());
+
+    new TGFileDialog( gClient->GetRoot(), this, kFDSave, &fi);
+    if (fi.fFilename == NULL)
+    {
+	// No action to be taken!
+	return false;
+    }
+    cout << "Filename " << fi.fFilename << endl;
+    if (strlen(fi.fFilename) > 0)
+    {
+	// We have something to save. 
+    }
+    SET_DEBUG_STACK;
+    SET_DEBUG_STACK;
+    return true;
 }

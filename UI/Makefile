@@ -29,8 +29,8 @@ LIBS = -L$(DRIVE)/lib_linux -lDSA602 -lmygpib -lutility -L/usr/local/lib \
 SRC     = 
 SRCCPP  = main.cpp FFTDlg.cpp TimeDlg.cpp ChannelFrame.cpp \
 	ModuleDlg.cpp TraceDlg.cpp TraceFrame.cpp DescDlg.cpp \
-	Description.cpp MeasDlg.cpp SPlot.cpp \
-	WaveDlg.cpp UserSignals.cpp S_Dict.cpp
+	MeasDlg.cpp SPlot.cpp Description.cpp WaveDlg.cpp \
+	UserSignals.cpp S_Dict.cpp
 
 SRCS    = $(SRC) $(SRCCPP)
 

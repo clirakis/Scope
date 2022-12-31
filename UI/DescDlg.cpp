@@ -50,7 +50,7 @@ using namespace std;
  * Description : Create the waveform description. 
  *
  * Inputs : main - pointer to parent window
- *          p - pointer to scope info
+ *          p - pointer to current trace info
  *
  * Returns : Constructed GUI dialog
  *
@@ -68,6 +68,9 @@ DescDlg::DescDlg(const TGWindow *main, void *p)
 {
     SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
+
+    // Save the pointer to the current DefTrace info. 
+    pPtrDefTrace = p;
 
     Connect("CloseWindow()", "DescDlg", this, "CloseWindow()");
 
@@ -118,7 +121,7 @@ DescDlg::DescDlg(const TGWindow *main, void *p)
  *
  *******************************************************************
  */
-void DescDlg::BuildButtonBox()
+void DescDlg::BuildButtonBox(void)
 {
     SET_DEBUG_STACK;
     TGButton *tb;
@@ -283,6 +286,10 @@ void DescDlg::BuildDisplayArea()
 
     //Resize();
     AddFrame(gf, new TGLayoutHints(kLHintsLeft, 2, 2, 2, 2));
+
+    fDescription = new TGLabel( this, new TGHotString("EMPTY"));
+    AddFrame( fDescription, new TGLayoutHints(kLHintsLeft|kLHintsExpandX, 
+					      2, 2, 2, 2));
     SET_DEBUG_STACK;
 }
 /**
@@ -368,9 +375,9 @@ void DescDlg::DoClose()
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : Update
  *
- * Description : 
+ * Description : Parse out the various items and fill in the dialog.
  *
  * Inputs : None
  *
@@ -378,9 +385,9 @@ void DescDlg::DoClose()
  *
  * Error Conditions :
  *
- * Unit Tested on: 14-Dec-14
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -388,5 +395,9 @@ void DescDlg::DoClose()
 void DescDlg::Update(void)
 {
     SET_DEBUG_STACK;
+    DefTrace* pDefT   = (DefTrace*) pPtrDefTrace;
+
+    // Current string assocated with this trace. 
+    fDescription->SetText(pDefT->Description(true));
     SET_DEBUG_STACK;
 }

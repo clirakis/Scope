@@ -170,7 +170,7 @@ void TraceDlg::BuildDisplayArea(void)
     // Add a tab per available trace. 
     for (uint8_t i=0;i<n;i++)
     {
-	sprintf(title,"TRACE%1d", i);
+	sprintf(title,"TRACE%1d", i+1);
 	tf = Tab->AddTab(title);
 	new TraceFrame(tf, i+1);
     }

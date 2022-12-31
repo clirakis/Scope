@@ -197,7 +197,12 @@ void TraceFrame::Update(void)
     if(pTrace)
     {
 	//AdjTrace* pAdjT   = pTrace->GetAdj(fNumber-1);
+
+	// FIXME, is this right? 
 	DefTrace* pDefT   = pTrace->GetDef(fNumber-1);
+	cout << "TraceFrame: " << fNumber
+	     << " " << *pDefT
+	     << endl;
 
 	pTrace->Update();
 	/*
@@ -378,9 +383,10 @@ void TraceFrame::SetGRLocation(int val)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : EditDescription
  *
- * Description : 
+ * Description : Open a dialog to display and subequently edit
+ *               the current trace input parameters. 
  *
  * Inputs : None
  *
@@ -390,7 +396,7 @@ void TraceFrame::SetGRLocation(int val)
  *
  * Unit Tested on:
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -398,7 +404,21 @@ void TraceFrame::SetGRLocation(int val)
 void TraceFrame::EditDescription(void)
 {
     SET_DEBUG_STACK;
-    new DescDlg(this, NULL);
+    DSA602*   scope   = DSA602::GetThis();
+    Trace *   pTrace  = scope->GetTrace();
+
+    // Get the current Data. 
+    if(pTrace)
+    {
+	// FIXME, is this right? fNumber is somehow wrong, still 0.
+	DefTrace* pDefT   = pTrace->GetDef(fNumber-1);
+	cout << "TraceFrame:EditDescription: " << fNumber
+	     << " " << *pDefT
+	     << endl;
+
+	// Need to pass in the current tab/trace in view. 
+	new DescDlg(this, (void*) pDefT);
+    }
     SET_DEBUG_STACK;
 }
 /**
