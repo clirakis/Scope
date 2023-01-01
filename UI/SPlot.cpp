@@ -15,7 +15,7 @@
  * Classification : Unclassified
  *
  * References :
- *
+ * DSA602 Programming reference manual. 
  *
  *******************************************************************
  */
@@ -30,14 +30,11 @@ using namespace std;
 #include <cstdio>
 
 /// Root Includes
-#include <TROOT.h>
 #include <TApplication.h>
 #include <TVirtualX.h>
 #include <TGButton.h>
 #include <TGMenu.h>
-#include <TGCanvas.h>
 #include <TGFileDialog.h>
-#include <TGButton.h>
 #include <TRootEmbeddedCanvas.h>
 #include <TGToolBar.h>
 #include <TGStatusBar.h>
@@ -46,12 +43,11 @@ using namespace std;
 #include <TSystem.h>
 #include <TRootHelpDialog.h>
 #include <TGButtonGroup.h>
-#include <TLegend.h>
-#include <TMarker.h>
 #include <TAxis.h>
 #include <TGraph.h>
 #include <TGMsgBox.h>
 
+// local includes
 #include "debug.h"
 #include "SPlot.hh"
 #include "WaveDlg.hh"
@@ -62,8 +58,12 @@ using namespace std;
 #include "TraceDlg.hh"
 #include "FFTDlg.hh"
 #include "DSA602.hh"
+#include "FileTrace.hh"   // load and save traces. 
 #include "Version.hh"
 
+/*
+ * GPIB address of scope. (FIXME - move to pref file.
+ */
 const int Scope_GPIB_A = 5;
 
 const char *PrintPrg[]  = {"/usr/bin/lpr","/usr/bin/lp"};
@@ -136,14 +136,20 @@ ToolBarData_t toolbar_data[] = {
 static const char *HelpText1 = 
     "Interface to DSA602 digitizing scope/analyzer Version";
 
+SPlot* SPlot::fSPlot;
+
 /**
  ******************************************************************
  *
- * Function Name :
+ * Function Name : SPlot
  *
- * Description :
+ * Description : main class for interfacing and displaying waveforms
+ *               from the tektronix DSA602 digital scope. 
  *
- * Inputs :
+ * Inputs : 
+ *      p - parent window
+ *      w - starting width
+ *      h - starting height
  *
  * Returns :
  *
@@ -160,6 +166,7 @@ SPlot::SPlot(const TGWindow *p, UInt_t w, UInt_t h) :
     TGMainFrame( p, w, h,  kVerticalFrame)
 {
     SET_DEBUG_STACK;
+    fSPlot = this;
     SetCleanup(kDeepCleanup);
 
     // Used to store GUI elements that need to be deleted in the destructor.
@@ -651,9 +658,11 @@ void SPlot::HandleMenu(Int_t id)
 	DoSaveAs();
 	break;
     case M_FILE_SAVE_PARAMETERS:
-    case M_FILE_SAVE_WAVEFORM:
 	new TGMsgBox( gClient->GetRoot(), NULL, "Not implemented", 
 		      "NOT YET IMPLEMENTED", kMBIconExclamation);
+	break;
+    case M_FILE_SAVE_WAVEFORM:
+	SaveWaveform();
 	break;
     case M_FILE_PRINT:
 #if 0
@@ -1400,6 +1409,14 @@ bool SPlot::SaveWaveform(void)
 	0,              0 };
     TGFileInfo fi;
 
+    if (!fGraph)
+    {
+	new TGMsgBox( gClient->GetRoot(), NULL, "No waveform", 
+		      "No waveform to save.", 
+		      kMBIconExclamation);
+	return false;
+    }
+
     fi.fFileTypes = SPWaveTypes;
     fi.fIniDir    = StrDup(fLastDir->Data());
 
@@ -1407,12 +1424,17 @@ bool SPlot::SaveWaveform(void)
     if (fi.fFilename == NULL)
     {
 	// No action to be taken!
+	cout << "NO FILENAME." << endl;
 	return false;
     }
-    cout << "Filename " << fi.fFilename << endl;
-    if (strlen(fi.fFilename) > 0)
+    else
     {
-	// We have something to save. 
+	cout << "Filename " << fi.fFilename << endl;
+	if (strlen(fi.fFilename) > 0)
+	{
+	    // Not sure this makes sense to be a class. 
+	    FileTrace *ft = new FileTrace(fi.fFilename);
+	}
     }
     SET_DEBUG_STACK;
     return true;

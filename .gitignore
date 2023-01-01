@@ -40,3 +40,10 @@ make.depend
 # The executable
 Scope
 testme
+
+# root and csv data files. 
+*.root
+*.csv
+#
+# intermediate files for root compilation. 
+S_Dict.cpp

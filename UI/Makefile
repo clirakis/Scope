@@ -10,6 +10,7 @@
 #       27-Dec-22       CBL     MValue and MeasurementA are gone/condensed 
 #                               and in the library. 
 #       31-Dec-22       CBL     Moved Input to the library. 
+#       01-Dec-22       CBL     Put in save and load file. - FileTrace.cpp 
 #
 ######################################################################
 # Machine specific stuff
@@ -30,7 +31,7 @@ SRC     =
 SRCCPP  = main.cpp FFTDlg.cpp TimeDlg.cpp ChannelFrame.cpp \
 	ModuleDlg.cpp TraceDlg.cpp TraceFrame.cpp DescDlg.cpp \
 	MeasDlg.cpp SPlot.cpp Description.cpp WaveDlg.cpp \
-	UserSignals.cpp S_Dict.cpp
+	FileTrace.cpp UserSignals.cpp S_Dict.cpp
 
 SRCS    = $(SRC) $(SRCCPP)
 

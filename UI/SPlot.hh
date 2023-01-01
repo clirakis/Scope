@@ -42,6 +42,9 @@ class SPlot : public TGMainFrame {
 public:
     SPlot(const TGWindow *p, UInt_t w = 1000, UInt_t h = 400);
     ~SPlot();
+
+    static SPlot* GetThis(void)    {return fSPlot;};
+
     void CloseWindow();
     void ProcessedEvent(Int_t event, Int_t x, Int_t y, TObject *selected);
     void HandleMenu(Int_t id);
@@ -50,10 +53,16 @@ public:
     bool OpenAndParseFile(const char *file);
 
     // slots
-    void GetData();
-    void SetTrace();
+    void GetData(void);
+    void SetTrace(void);
+
+    // Quick access methods. 
+    inline TGraph* GetGraph(void) {return fGraph;}
+
 
 private:
+    static SPlot        *fSPlot;         // This pointer
+
     TRootEmbeddedCanvas *fEmbeddedCanvas;
     TGStatusBar         *fStatusBar; 
     Double_t            down_x, down_y;
@@ -107,5 +116,7 @@ private:
     bool SaveWaveform(void);
 
     bool SaveParameters(void);
+
+
 };
 #endif
