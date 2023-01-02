@@ -25,13 +25,18 @@ using namespace std;
 // Use root as a save mechanism. 
 #include <TFile.h>
 #include <TGraph.h>
+#include <TObjString.h>
+#include <TString.h>
 
 // Local Includes.
 #include "debug.h"
 #include "CLogger.hh"
 #include "SPlot.hh"
 #include "DSA602.hh"
+#include "WFMPRE.hh"
 #include "FileTrace.hh"
+#include "Trace.hh"
+#include "DefTrace.hh"
 
 /**
  ******************************************************************
@@ -123,21 +128,38 @@ FileTrace::~FileTrace (void)
 bool FileTrace::SaveRoot(const char *Name)
 {
     SET_DEBUG_STACK;
-    DSA602*      scope = DSA602::GetThis();
-    CLogger*     log   = CLogger::GetThis();
+    DSA602*      scope  = DSA602::GetThis();
+    //CLogger*     log    = CLogger::GetThis();
+    Trace *      pTrace = scope->GetTrace();
+
+    // Get the current Data. 
+    if(pTrace)
+    {
+	uint8_t Number = scope->GetSelectedTrace();
+	cout << "Number selected." << (int) Number << endl;
+	DefTrace* pDefT   = pTrace->GetDef(Number+1);
+	cout << *pDefT << endl;
+    }
     /*
      * Open a TFile to store everything in. 
      * scope of tf is local.
      */
-    TFile tf ( Name, "CREATE", "DSA602 Scope Data" );
+    TFile tf ( Name, "RECREATE", "DSA602 Scope Data" );
     
     /*
      * Assume the tgraph exists and write it to a file. 
      * Get an erro on write. Not assocated with a file.
      * Kinda works.  
      */
-    cout << "Calling TGRAPH Write." << endl;
-    SPlot::GetThis()->GetGraph()->Write();
+
+    SPlot::GetThis()->GetGraph()->Write("Trace");
+
+    /*
+     * Save the Waveform preamble with this. 
+     */
+    string tmp(scope->GetWFMPRE()->Text());
+    TObjString WFM(tmp.c_str());
+    WFM.Write("WFMPRE");
 
     cout << "CLosing file." << endl;
     tf.Write();
