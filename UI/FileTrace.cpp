@@ -34,9 +34,11 @@ using namespace std;
 #include "SPlot.hh"
 #include "DSA602.hh"
 #include "WFMPRE.hh"
+#include "Channel.hh"
 #include "FileTrace.hh"
 #include "Trace.hh"
 #include "DefTrace.hh"
+#include "DSAFFT.hh"
 
 /**
  ******************************************************************
@@ -108,17 +110,17 @@ FileTrace::~FileTrace (void)
 /**
  ******************************************************************
  *
- * Function Name : FileTrace function
+ * Function Name : SaveRoot
  *
- * Description :
+ * Description : Save relevant data into a cern root TFile 
  *
- * Inputs :
+ * Inputs : Name of file to create. 
  *
- * Returns :
+ * Returns : true on success. 
  *
- * Error Conditions :
+ * Error Conditions : FILE write failure. 
  * 
- * Unit Tested on: 
+ * Unit Tested on: 02-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -131,41 +133,65 @@ bool FileTrace::SaveRoot(const char *Name)
     DSA602*      scope  = DSA602::GetThis();
     //CLogger*     log    = CLogger::GetThis();
     Trace *      pTrace = scope->GetTrace();
+    DSAFFT*      pFFT   = scope->GetFFT();
+    bool         rv     = false;
+    char         Response[512];
 
     // Get the current Data. 
     if(pTrace)
     {
+	/*
+	 * Open a TFile to store everything in. 
+	 * scope of tf is local.
+	 */
+	TFile tf ( Name, "RECREATE", "DSA602 Scope Data" );
+
 	uint8_t Number = scope->GetSelectedTrace();
 	cout << "Number selected." << (int) Number << endl;
 	DefTrace* pDefT   = pTrace->GetDef(Number+1);
 	cout << *pDefT << endl;
+
+	// Life is good. Lets get some additional data. 
+ 
+	/*
+	 * Assume the tgraph exists and write it to a file. 
+	 * Get an erro on write. Not assocated with a file.
+	 * Kinda works.  
+	 */
+
+	SPlot::GetThis()->GetGraph()->Write("Trace");
+
+	string tmp(scope->GetWFMPRE()->Text());
+	/*
+	 * tmp describes the waveform. 
+	 * lets also get all the data about the mainframe configuration. 
+	 */
+	if (scope->Command("CH?", Response, sizeof(Response)))
+	{
+	    // This should work and have all the mainframe config in it.
+	    TObjString Channel(Response);
+	    Channel.Write("Channel");
+	}
+
+	/*
+	 * Save the Waveform preamble with this. 
+	 */
+	TObjString WFM(tmp.c_str());
+	WFM.Write("WFMPRE");
+
+	/*
+	 * And the same for the FFT data. 
+	 */
+	pFFT->Update();
+	TObjString FFT(pFFT->Text().c_str());
+	FFT.Write("FFT");
+
+	tf.Write();
+	tf.Close();
+	rv = true;
     }
-    /*
-     * Open a TFile to store everything in. 
-     * scope of tf is local.
-     */
-    TFile tf ( Name, "RECREATE", "DSA602 Scope Data" );
-    
-    /*
-     * Assume the tgraph exists and write it to a file. 
-     * Get an erro on write. Not assocated with a file.
-     * Kinda works.  
-     */
-
-    SPlot::GetThis()->GetGraph()->Write("Trace");
-
-    /*
-     * Save the Waveform preamble with this. 
-     */
-    string tmp(scope->GetWFMPRE()->Text());
-    TObjString WFM(tmp.c_str());
-    WFM.Write("WFMPRE");
-
-    cout << "CLosing file." << endl;
-    tf.Write();
-    tf.Close();
     SET_DEBUG_STACK;
-    return true;
+    return rv;
 }
 /**
  ******************************************************************

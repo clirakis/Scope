@@ -22,18 +22,16 @@ using namespace std;
 #include <string>
 
 /// Root Includes
-#include <TROOT.h>
-#include <TGClient.h>
 #include <TGFrame.h>
 #include <TGLabel.h>
-#include <TGButton.h>
 #include <TGComboBox.h>
-#include <TGMsgBox.h>
+#include <TGNumberEntry.h>
 #include <TVirtualX.h>
 
 
 /// Local Includes.
 #include "debug.h"
+#include "CLogger.hh"
 #include "DSA602.hh"
 #include "FFTDlg.hh"
 #include "DSAFFT.hh"
@@ -61,6 +59,7 @@ using namespace std;
 FFTDlg::FFTDlg(const TGWindow *main)
     : TGTransientFrame(gClient->GetRoot(), main, 60, 40)
 {
+    SET_DEBUG_STACK;
     SetCleanup(kDeepCleanup);
 
     Connect("CloseWindow()", "FFTDlg", this, "CloseWindow()");
@@ -88,8 +87,11 @@ FFTDlg::FFTDlg(const TGWindow *main)
 
     Move((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
     SetWMPosition((((TGFrame *) main)->GetWidth() >> 1) + ax, ay);
+
     MapWindow();
+
     fClient->WaitFor(this);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -155,7 +157,7 @@ void FFTDlg::BuildDisplayArea()
     TGGroupFrame *gf = new TGGroupFrame( this, "FFT setup", 
                                          kHorizontalFrame);
     // Rows, Columns, Interval between frames, hints
-    gf->SetLayoutManager(new TGMatrixLayout( gf, 6, 2, 10, 2));
+    gf->SetLayoutManager(new TGMatrixLayout( gf, 7, 2, 10, 2));
 
     // 1
     label = new TGLabel(gf, new TGHotString("AVG:"));
@@ -166,27 +168,38 @@ void FFTDlg::BuildDisplayArea()
     fAVG->Connect("Clicked()", "FFTDlg", this, "SetAVG()");
 
     // 2
+    label = new TGLabel(gf, new TGHotString("NAVG:"));
+    gf->AddFrame(label);
+    fNAvg = new TGNumberEntry( gf, 2.0, 5, -1,
+			       TGNumberFormat::kNESInteger, 
+			       TGNumberFormat::kNEAPositive,
+			       TGNumberFormat::kNELLimitMinMax,
+			       2.0, 65534.0);
+    fNAvg->Connect("ValueSet(Long_t)", "FFTDlg", this, "SetNAvg(long)");
+    gf->AddFrame(fNAvg);
+
+    // 3
     label = new TGLabel(gf, new TGHotString("DC Sup:"));
     gf->AddFrame(label);
     fDCSUP =  new TGCheckButton( gf, "DC Sup");
     gf->AddFrame(fDCSUP);
     fDCSUP->Connect("Clicked()", "FFTDlg", this, "SetDCSUP()");
 
-    // 3
+    // 4
     label = new TGLabel(gf, new TGHotString("Unwrap"));
     gf->AddFrame(label);
     fPHAse =  new TGCheckButton( gf, "Phase");
     gf->AddFrame(fPHAse);
     fPHAse->Connect("Clicked()", "FFTDlg", this, "SetPHAse()");
 
-    // 4 
+    // 5
     label = new TGLabel(gf, new TGHotString("Filter:"));
     gf->AddFrame(label);
     fFILTer =  new TGCheckButton( gf, "Filter");
     gf->AddFrame(fFILTer);
     fFILTer->Connect("Clicked()", "FFTDlg", this, "SetFILTer()");
 
-    // 5
+    // 6
     label = new TGLabel(gf, new TGHotString("Format:"));
     gf->AddFrame(label);
     fFORMat = new TGComboBox( gf);
@@ -201,7 +214,7 @@ void FFTDlg::BuildDisplayArea()
     gf->AddFrame(fFORMat);
 
 
-    // 6
+    // 7
     label = new TGLabel(gf, new TGHotString("Window:"));
     gf->AddFrame(label);
     fWINDow = new TGComboBox( gf);
@@ -240,7 +253,7 @@ void FFTDlg::BuildDisplayArea()
 void FFTDlg::CloseWindow()
 {
     // Called when closed via window manager action.
-
+    SET_DEBUG_STACK;
     delete this;
 }
 /**
@@ -267,6 +280,7 @@ void FFTDlg::CloseWindow()
  */
 void FFTDlg::Done()
 {
+    SET_DEBUG_STACK;
     SendCloseMessage();
 }
 /**
@@ -292,15 +306,16 @@ void FFTDlg::Done()
  */
 void FFTDlg::DoClose()
 {
+    SET_DEBUG_STACK;
    // Handle close button.
     SendCloseMessage();
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : Update
  *
- * Description : 
+ * Description :  Update all the fields with the FFT data.
  *
  * Inputs : None
  *
@@ -308,86 +323,93 @@ void FFTDlg::DoClose()
  *
  * Error Conditions :
  *
- * Unit Tested on: 24-Dec-14
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
 void FFTDlg::Update(void)
 {
-#if 0   // FIXME
-    DSA602* h = DSA602::GetThis();
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
 
-    if (h->AVG())
+    if(pFFT->Update())
     {
-	fAVG->SetState(kButtonDown, kFALSE);
-    }
-    else
-    {
-	fAVG->SetState(kButtonUp, kFALSE);
-    }
+	if (pFFT->AVG())
+	{
+	    fAVG->SetState(kButtonDown, kFALSE);
+	}
+	else
+	{
+	    fAVG->SetState(kButtonUp, kFALSE);
+	}
 
-    if (h->DCSUP())
-    {
-	fDCSUP->SetState(kButtonDown, kFALSE);
-    }
-    else
-    {
-	fDCSUP->SetState(kButtonUp, kFALSE);
-    }
+	if (pFFT->DCSUP())
+	{
+	    fDCSUP->SetState(kButtonDown, kFALSE);
+	}
+	else
+	{
+	    fDCSUP->SetState(kButtonUp, kFALSE);
+	}
 
-    if (h->PHAse())
-    {
-	fPHAse->SetState(kButtonDown, kFALSE);
-    }
-    else
-    {
-	fPHAse->SetState(kButtonUp, kFALSE);
-    }
+	if (pFFT->PHAse())
+	{
+	    fPHAse->SetState(kButtonDown, kFALSE);
+	}
+	else
+	{
+	    fPHAse->SetState(kButtonUp, kFALSE);
+	}
 
-    if (h->FILTer())
-    {
-	fFILTer->SetState(kButtonDown, kFALSE);
-    }
-    else
-    {
-	fFILTer->SetState(kButtonUp, kFALSE);
-    }
+	// Not quite sure what this is. 
+	if (pFFT->FILTer())
+	{
+	    fFILTer->SetState(kButtonDown, kFALSE);
+	}
+	else
+	{
+	    fFILTer->SetState(kButtonUp, kFALSE);
+	}
 
-    fFORMat->Select((Int_t)h->FORMat(),kFALSE);
-    fWINDow->Select((Int_t)h->WINDow(),kFALSE);
+	fFORMat->Select((Int_t)pFFT->FORMat(),kFALSE);
+	fWINDow->Select((Int_t)pFFT->WINDow(),kFALSE);
 
-    h->Update();
-#endif
+	fNAvg->SetNumber((Double_t) pFFT->NAvg(), kFALSE);
+    }
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetFORmat
  *
- * Description : 
+ * Description : Set the format of the output. Can be one of the following. 
+ * kDBM, kDBFUND, kDBVPEAK, kDBVRMS, kVPEAK, kVRMS
  *
- * Inputs : None
+ * Inputs : index from combo box tied to the above
  *
  * Returns : None
  *
- * Error Conditions :
+ * Error Conditions : GPIB write error
  *
- * Unit Tested on: 24-Dec-14
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
 void FFTDlg::SetFORMat(int index)
 {
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SetFormat((FFTFORMAT)index);
-#endif
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SetFormat((FFTFORMAT)index);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
@@ -411,15 +433,129 @@ void FFTDlg::SetFORMat(int index)
  */
 void FFTDlg::SetWINDow(int index)
 {
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SetWindow((FFT_WINDOW)index);
-#endif
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SetWindow((FFT_WINDOW)index);
+    SET_DEBUG_STACK;
 }
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetAVG
+ *
+ * Description : if the TGCheckbutton is true, set the AVG on
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void FFTDlg::SetAVG(void)
+{
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SendCommand(DSAFFT::kCAVG, (bool) fAVG->GetState());
+    SET_DEBUG_STACK;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : SetDCSUP
+ *
+ * Description : if the TGCheckbutton is true, set the DC Supresson on
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void FFTDlg::SetDCSUP(void)
+{
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SendCommand(DSAFFT::kCDCSUP, (bool) fDCSUP->GetState());
+    SET_DEBUG_STACK;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : SetPHAse
+ *
+ * Description : if the TGCheckbutton is true, set the Phase wrap on
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void FFTDlg::SetPHAse(void)
+{
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SendCommand(DSAFFT::kCPHASE, (bool) fPHAse->GetState());
+    SET_DEBUG_STACK;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : SetFILTer
+ *
+ * Description : if the TGCheckbutton is true, set the Filter on, 
+ *               I'm not sure this is a real command. 
+ *
+ * Inputs : None
+ *
+ * Returns : None
+ *
+ * Error Conditions :
+ *
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void FFTDlg::SetFILTer(void)
+{
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SendCommand(DSAFFT::kCFILTER, fFILTer->GetState());
+    SET_DEBUG_STACK;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : SetNAvg
  *
  * Description : 
  *
@@ -429,38 +565,18 @@ void FFTDlg::SetWINDow(int index)
  *
  * Error Conditions :
  *
- * Unit Tested on: 24-Dec-14
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
  */
-void FFTDlg::SetAVG(void)
+void FFTDlg::SetNAvg(long val)
 {
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SendCommand(DSAFFT::CAVG, (bool) fAVG->GetState());
-#endif
-}
-void FFTDlg::SetDCSUP(void)
-{
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SendCommand(DSAFFT::CDCSUP, (bool) fDCSUP->GetState());
-#endif
-}
-void FFTDlg::SetPHAse(void)
-{
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SetPhase((bool) fPHAse->GetState());
-#endif
-}
-void FFTDlg::SetFILTer(void)
-{
-#if 0
-    DSAFFTGPIB* h = (DSAFFTGPIB *) fGPIB;
-    h->SetFilter((bool) fFILTer->GetState());
-#endif
+    SET_DEBUG_STACK;
+    DSA602* scope = DSA602::GetThis();
+    DSAFFT* pFFT  = scope->GetFFT();
+    pFFT->SetNAvg((uint16_t) val);
+    SET_DEBUG_STACK;
 }

@@ -19,12 +19,12 @@
  */
 #ifndef __FFTDLG_hh_
 #define __FFTDLG_hh_
-#    include <TGTextEntry.h>
-#    include <TGButton.h>
-#    include <RQ_OBJECT.h>
+#  include <RQ_OBJECT.h>
+#  include <TGFrame.h>
 
 class TGCheckButton;
 class TGComboBox;
+class TGNumberEntry;
 
 class FFTDlg : public TGTransientFrame
 {
@@ -47,6 +47,7 @@ public:
     void   SetFILTer(void);
     void   SetFORMat(int);
     void   SetWINDow(int);
+    void   SetNAvg(long);
 
 private:
 
@@ -64,6 +65,7 @@ private:
     TGCheckButton* fFILTer;
     TGComboBox*    fFORMat;
     TGComboBox*    fWINDow;
+    TGNumberEntry* fNAvg;
 };
 
 #endif
