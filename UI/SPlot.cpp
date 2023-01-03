@@ -8,7 +8,7 @@
  * Description : Plot the output the scope
  *
  *
- * Restrictions/Limitations :
+ * Restrictions/Limitations : NONE
  *
  * Change Descriptions :
  *
@@ -1235,42 +1235,28 @@ void SPlot::DoSaveAs(void)
 void SPlot::GetData(void)
 {
     SET_DEBUG_STACK;
-    double *Y, *X;
-    DSA602* scope = (DSA602*) fScope;
-    Int_t retval;
-    uint8_t TraceNumber = scope->GetSelectedTrace();
-
-#if 0
-    /*
-     * FIXME!
-     * The lower level code in the library does not work. 
-     * Looking to see if there is any data at all to retrieve. 
-     * This does not do that correctly. 
-     */
-    for(Int_t i=0;i<8;i++)
-    {
-	if(scope->GetDisplayTrace(i)) TraceNumber = i+1;
-    }
-    if (TraceNumber==0)
-    {
-        new TGMsgBox(fClient->GetRoot(),
-                     this, "NO Trace", "No trace selected to retrieve.",
-                     kMBIconExclamation, kMBOk, &retval);
-	return;
-    }
-#endif
-    SET_DEBUG_STACK;
+    double    *Y, *X;
+    DSA602*   scope   = (DSA602*) fScope;
+    Trace *   pTrace  = scope->GetTrace();
+    uint8_t   Number  = scope->GetSelectedTrace();
+    DefTrace* pDefT   = pTrace->GetDef(Number+1);
+    Int_t     retval;
+    char      title[128];
 
     /*
      * for the given trace number, return the X and Y point set. 
      * n contains the number of points in the curve if present. 
      */
-    Int_t n = scope->Curve(TraceNumber, &X, &Y);
+    cout << "SPlot selected trace number: " << (int) Number << endl;
+    Int_t n = scope->Curve(Number, &X, &Y);
     if (n>0)
     {
 	if (fGraph) delete fGraph;
 	fGraph = new TGraph( n, X, Y);
-	fGraph->SetTitle(scope->GetWFMPRE()->WaveformID().c_str());
+	sprintf (title, "%s %s", 
+		 scope->GetWFMPRE()->WaveformID().c_str(),
+		 pDefT->Description(false));
+	fGraph->SetTitle(title);
 	fGraph->Draw("ALP");
 	TH1 *h = fGraph->GetHistogram();
 	if (h)
