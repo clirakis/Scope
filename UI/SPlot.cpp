@@ -81,7 +81,9 @@ static const char *SPSaveTypes[] = {
     "Encapsulated PostScript", "*.eps",
     "PDF",          "*.pdf",
     "SVG",          "*.svg",
-    "Gif files",    "*.gif",
+    "gif files",    "*.gif",
+    "jpg files",    "*.jpg",
+    "png files",    "*.png",
     0,              0 };
 
 /*
@@ -108,7 +110,6 @@ enum SVPCommandIdentifiers {
    M_ZOOM_MINUS,
    M_ZOOM_SELECTED,
    M_RELOAD,
-   M_FILE_SAVEAS
 };
 
 // Toolbar stuff
@@ -403,7 +404,7 @@ void SPlot::CreateMenuBar(void)
     MenuFile = new TGPopupMenu(gClient->GetRoot());
 
     //MenuFile->AddEntry("O&pen"  , M_FILE_OPEN);
-    MenuFile->AddEntry("Save Parameters", M_FILE_SAVE_AS); // gif/jpg etc
+    MenuFile->AddEntry("Save As"        , M_FILE_SAVE_AS); // gif/jpg etc
     MenuFile->AddEntry("Save Parameters", M_FILE_SAVE_PARAMETERS);
     MenuFile->AddEntry("Save Waveform"  , M_FILE_SAVE_WAVEFORM);
     MenuFile->AddEntry("P&rint"         , M_FILE_PRINT);
@@ -654,12 +655,13 @@ void SPlot::HandleMenu(Int_t id)
     case M_FILE_OPEN:
 	DoLoad();
 	break;
-    case M_FILE_SAVEAS:
+    case M_FILE_SAVE_AS:
 	DoSaveAs();
 	break;
     case M_FILE_SAVE_PARAMETERS:
-	new TGMsgBox( gClient->GetRoot(), NULL, "Not implemented", 
-		      "NOT YET IMPLEMENTED", kMBIconExclamation);
+// 	new TGMsgBox( gClient->GetRoot(), NULL, "Not implemented", 
+// 		      "NOT YET IMPLEMENTED", kMBIconExclamation);
+	SaveParameters();
 	break;
     case M_FILE_SAVE_WAVEFORM:
 	SaveWaveform();
@@ -1450,9 +1452,10 @@ bool SPlot::SaveWaveform(void)
 bool SPlot::SaveParameters(void)
 {
     SET_DEBUG_STACK;
+    DSA602* scope = (DSA602*) fScope;
     static const char *SPParamTypes[] = {
-	"root",          "*.txt",
-	"CSV",          "*.root",
+	"text",          "*.cmds",
+	"CSV",          "*.csv",
 	0,              0 };
     TGFileInfo fi;
 
@@ -1468,7 +1471,7 @@ bool SPlot::SaveParameters(void)
     cout << "Filename " << fi.fFilename << endl;
     if (strlen(fi.fFilename) > 0)
     {
-	// We have something to save. 
+	scope->SaveSetup(fi.fFilename);
     }
     SET_DEBUG_STACK;
     SET_DEBUG_STACK;

@@ -454,6 +454,7 @@ static void GetData(void)
 
 }
 #endif
+#if 0
 static void TestMeasurement(void)
 {
     Measurement *pmeas  = hgpib->pMeasurement();
@@ -466,6 +467,14 @@ static void TestMeasurement(void)
     pmeas->NList();
     pmeas->ActiveList();
     cout << "And the results are: " << endl << *pmeas;
+}
+#endif
+static void TestReadFile(void)
+{
+    logger->SetVerbose(2);
+    hgpib->ExecuteFile("init.cmds");
+
+    hgpib->SaveSetup("setup.cmds");
 }
 /**
  ******************************************************************
@@ -507,7 +516,8 @@ int main(int argc, char **argv)
 	//TestFive();
 	//TestSix();
 	//GetData();
-	TestMeasurement();
+	//TestMeasurement();
+	TestReadFile();
     }
     Terminate(0);
 }

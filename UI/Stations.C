@@ -7,7 +7,8 @@
     // Set the grid on. 
     Hobbes->SetGrid(); 
     // Open the file with the FFT data in it. 
-    TFile *tf = new TFile("FFT10.root");
+    //TFile *tf = new TFile("FFT10.root");
+    TFile *tf = new TFile("FFT_1M_3.root");
 
     // Draw the FFT. 
     Trace->Draw("ALP");
@@ -61,8 +62,11 @@ void MarkStations(void)
     // 					  -55.0, "WFAN 660");
     //TPaveText *PL_WFAN = new TPaveText( 0.35, 0.4, 0.4, 0.45, "NDC");
 
+    Double_t Lower = -90.0;  // -70.0
+    Double_t Upper = -40.0;  // -20.0
     Double_t x0, x1, y0, y1;
-    y0 = -35.0;
+    //y0 = -35.0;
+    y0 = -40.0;
     Double_t ystep = 2.5;
 
     while (AMStations[i].text != NULL)
@@ -74,7 +78,7 @@ void MarkStations(void)
 	tpt = new TPaveText( x0, y0, x1, y1);
 	tpt->AddText(AMStations[i].text);
 	tpt->Draw();
-	tl = new TLine ( x0, -70.0, x0, -20.0);
+	tl = new TLine ( x0, Lower, x0, Upper);
 	tl->SetLineColor(kRed);
 	tl->Draw();
 	i++;
