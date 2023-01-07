@@ -1241,8 +1241,10 @@ void SPlot::GetData(void)
     double    *Y, *X;
     DSA602*   scope   = (DSA602*) fScope;
     Trace *   pTrace  = scope->GetTrace();
-    uint8_t   Number  = pTrace->GetSelectedTrace(); // index into trace array
-    DefTrace* pDefT   = pTrace->GetDef(Number);
+    //uint8_t   Number  = pTrace->GetSelectedTrace(); // index into trace array
+    //DefTrace* pDefT   = pTrace->GetDef(Number);
+    // Get current selected trace definition
+    DefTrace* pDefT = pTrace->GetCurrentDef();
     Int_t     retval;
     char      title[128];
 
@@ -1250,8 +1252,10 @@ void SPlot::GetData(void)
      * for the given trace number, return the X and Y point set. 
      * n contains the number of points in the curve if present. 
      */
-    cout << "SPlot selected trace number: " << (int) Number << endl;
-    Int_t n = scope->Curve(Number, &X, &Y);
+    //cout << "SPlot selected trace id: " << (int) pDefT->Number() << endl;
+
+    // Get current curve by trace id. 
+    Int_t n = scope->Curve(&X, &Y);
     if (n>0)
     {
 	if (fGraph) delete fGraph;
@@ -1315,7 +1319,7 @@ void SPlot::SetTrace(void)
     /*
      * Finally record the trace to be downloaded. 
      */
-    cout << "Set selected trace." << (int) id << endl;
+//    cout << "Set selected trace." << (int) id << endl;
     pTrace->SetSelectedTrace(id);
     SET_DEBUG_STACK;
 }
@@ -1348,7 +1352,7 @@ void SPlot::UpdateTraceButtons(void)
     
     // How many traces are there to inquire on? 
     Int_t n = pTrace->GetNTrace();
-    cout << __FUNCTION__ << " " << n << endl;
+
     for (Int_t i=0;i<8;i++)
     {
 	if (i<n)
