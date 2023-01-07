@@ -30,7 +30,8 @@
     Double_t pv = GetPeakValue(660.0e3, Trace); // Power in dBm.
     Convert2Volts(pv);
 
-    CompareStations(Trace);
+    //CompareStations(Trace);
+    ScanForPeaks(Trace);
 }
 /*
  * https://radio-locator.com/cgi-bin/finder?sr=Y&s=C&call=WMCA&nav=home
@@ -189,4 +190,50 @@ void CompareStations(TGraph *tg)
     //corr->FitPanel();
     cout << "Drawing complete." << endl;
     cout << "Corr factor." << corr->GetCorrelationFactor() << endl;
+}
+void ScanForPeaks(TGraph *tg)
+{
+    Double_t XINCR = 9.765625E+2;
+    Double_t dy;
+
+    Int_t N = tg->GetN();
+    Double_t Freq, dBm, Prev_dBm;
+    UInt_t i;
+    Double_t X[2048], Y[2048];
+
+    Double_t LowerCutoff = -86.0; // dBm cuttoff. 
+    memset(X, 0, 2048*sizeof(Double_t));
+    memset(Y, 0, 2048*sizeof(Double_t));
+    /*
+     *  Not efficient, but works, eliminate everything below the cutoff. 
+     */
+    for (i=0;i<N;i++)
+    {
+	Freq = tg->GetPointX(i);
+	dBm  = tg->GetPointY(i);
+	X[i] = Freq;
+	if (dBm>LowerCutoff)
+	{
+	    Y[i] = dBm;
+	}
+    }
+
+    /*
+     * Now loop over this smaller set. 
+     */
+    Prev_dBm = -96.0;  // lowest 16 bit value
+    for (i=0;i<N;i++)
+    {
+	Freq = X[i];
+	dBm  = Y[i];
+	dy   = dBm - Prev_dBm;
+	if (dy < 0.0)
+	{
+	    cout << "Index: " << i
+		 << " Freq: " << X[i-1]
+		 << " dBm: "  << Y[i-1]
+		 << endl;
+	}
+	Prev_dBm = dBm;
+    }
 }

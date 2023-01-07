@@ -293,9 +293,10 @@ void SPlot::AddControls(void)
     {
 	sprintf( title, "%d", i+1);
 	/*
-	 * Add the radio button with a trace number given by i. 
+	 * Add the radio button with a trace number index given by i.
+	 * set the id of the button to the trace index.  
 	 */
-	fTrace[i] = new TGRadioButton(gf, title, i+1);
+	fTrace[i] = new TGRadioButton(gf, title, i);
 	fTrace[i]->Connect( "Clicked()", "SPlot", this, "SetTrace()");
 	gf->AddFrame(fTrace[i]);
     }
@@ -1240,8 +1241,8 @@ void SPlot::GetData(void)
     double    *Y, *X;
     DSA602*   scope   = (DSA602*) fScope;
     Trace *   pTrace  = scope->GetTrace();
-    uint8_t   Number  = scope->GetSelectedTrace();
-    DefTrace* pDefT   = pTrace->GetDef(Number+1);
+    uint8_t   Number  = pTrace->GetSelectedTrace(); // index into trace array
+    DefTrace* pDefT   = pTrace->GetDef(Number);
     Int_t     retval;
     char      title[128];
 
@@ -1302,18 +1303,20 @@ void SPlot::GetData(void)
 void SPlot::SetTrace(void)
 {
     SET_DEBUG_STACK;
-    DSA602* scope = (DSA602*) fScope;
+    DSA602* scope  = (DSA602*) fScope;
+    Trace * pTrace = scope->GetTrace();
 
     /*
      * Which button sent us this message? We need the id as an index. 
      */
     TGButton *btn = (TGButton *) gTQSender;
-    Int_t id      = btn->WidgetId();
+    Int_t id      = btn->WidgetId(); // the actual id is the index. 
 
     /*
      * Finally record the trace to be downloaded. 
      */
-    scope->SetDisplayTrace(id);
+    cout << "Set selected trace." << (int) id << endl;
+    pTrace->SetSelectedTrace(id);
     SET_DEBUG_STACK;
 }
 /**
@@ -1339,22 +1342,22 @@ void SPlot::SetTrace(void)
  */
 void SPlot::UpdateTraceButtons(void)
 {
-    DSA602* scope = (DSA602*) fScope;
-    Trace*  trace = scope->GetTrace();
-    Bool_t first  = kTRUE;
+    DSA602* scope  = (DSA602*) fScope;
+    Trace*  pTrace = scope->GetTrace();
+    Bool_t  first  = kTRUE;
     
     // How many traces are there to inquire on? 
-    Int_t n = trace->GetNTrace();
-    //cout << __FUNCTION__ << " " << n << endl;
+    Int_t n = pTrace->GetNTrace();
+    cout << __FUNCTION__ << " " << n << endl;
     for (Int_t i=0;i<8;i++)
     {
-	if (i < n) 
+	if (i<n)
 	{
+	    // Allow the user to hit the button
 	    fTrace[i]->SetEnabled(kTRUE);
-	    if (first)
+	    if (i == pTrace->GetSelectedTrace()) 
 	    {
 		fTrace[i]->SetState(kButtonDown);
-		first = kFALSE;
 	    }
 	    else
 	    {
@@ -1363,6 +1366,7 @@ void SPlot::UpdateTraceButtons(void)
 	}
  	else
 	{
+	    // Don't allow the user to touch the button. 
 	    fTrace[i]->SetEnabled(kFALSE);
 	}
     }

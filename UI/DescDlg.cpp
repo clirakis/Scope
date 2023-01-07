@@ -161,7 +161,7 @@ void DescDlg::BuildButtonBox(void)
  *
  *******************************************************************
  */
-void DescDlg::BuildDisplayArea()
+void DescDlg::BuildDisplayArea(void)
 {
     SET_DEBUG_STACK;
     const Int_t  Width  = 100;
@@ -312,7 +312,7 @@ void DescDlg::BuildDisplayArea()
  *
  *******************************************************************
  */
-void DescDlg::CloseWindow()
+void DescDlg::CloseWindow(void)
 {
     SET_DEBUG_STACK;
     // Called when closed via window manager action.
@@ -341,7 +341,7 @@ void DescDlg::CloseWindow()
  *
  *******************************************************************
  */
-void DescDlg::Done()
+void DescDlg::Done(void)
 {
     SET_DEBUG_STACK;
     SendCloseMessage();
@@ -366,7 +366,7 @@ void DescDlg::Done()
  *
  *******************************************************************
  */
-void DescDlg::DoClose()
+void DescDlg::DoClose(void)
 {
     SET_DEBUG_STACK;
    // Handle close button.

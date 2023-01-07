@@ -146,9 +146,12 @@ bool FileTrace::SaveRoot(const char *Name)
 	 */
 	TFile tf ( Name, "RECREATE", "DSA602 Scope Data" );
 
-	uint8_t Number = scope->GetSelectedTrace();
-	cout << "Number selected." << (int) Number << endl;
-	DefTrace* pDefT   = pTrace->GetDef(Number+1);
+	/*
+	 * Get the index into the trace array.
+	 */
+	uint8_t Number = pTrace->GetSelectedTrace();
+	cout << "index selected." << (int) Number << endl;
+	DefTrace* pDefT   = pTrace->GetDef(Number);
 	cout << *pDefT << endl;
 
 	// Life is good. Lets get some additional data. 
