@@ -178,6 +178,10 @@ void UserSignal(int sig)
 	// User code here. 
 	Monitor::GetThis()->Stop();
 	break;
+    case SIGHUP:
+	// Just report
+	logger->LogTime("# SIGHUP received. \n");
+	break;
     }
 }
 /**
@@ -205,7 +209,7 @@ void SetSignals(void)
     /*
      * Setup a signal handler.      
      */
-    signal (SIGHUP , Terminate);   // Hangup.
+    signal (SIGHUP , UserSignal);  // Hangup.
     signal (SIGINT , Terminate);   // CTRL+C signal 
     signal (SIGKILL, Terminate);   // 
     signal (SIGQUIT, Terminate);   // 

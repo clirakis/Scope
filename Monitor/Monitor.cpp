@@ -24,6 +24,13 @@ using namespace std;
 #include <unistd.h>
 #include <stdint.h>
 
+// Root includes for logging the data. 
+#include <TROOT.h>
+#include <TNtupleD.h>
+#include <TFile.h>
+#include <TObjString.h>
+#include <TEnv.h>
+
 // Local Includes.
 #include "debug.h"
 #include "CLogger.hh"
@@ -31,6 +38,7 @@ using namespace std;
 #include "DSA602.hh"
 #include "Trace.hh"
 #include "DefTrace.hh"
+#include "filename.hh"
 
 Monitor* Monitor::fMonitor = NULL;
 /*
@@ -80,12 +88,40 @@ static struct t_Station AMStations[9] = {
 Monitor::Monitor (void)
 {
     SET_DEBUG_STACK;
+    char comments[256];
+
     fMonitor = this;
     /*
      * Finally create scope object
      * Pass in GPIB address. 
      */
     fScope = new DSA602( Scope_GPIB_A);
+
+    /*
+     * Create a filename class and get a unique filename. 
+     */
+    const struct timespec OneDay = {24*3600L, 0L};
+    fName = new FileName("AMonitor", "root", OneDay);
+
+    /* setup a root preferences file. */
+    ReadConfiguration();
+
+    /*
+     * Setup user logging in a root ntuple. 
+     *
+     *
+     * Initialize Root package.
+     * We don't really need to track the return pointer. 
+     * We just need to initialize it. 
+     */
+    ::new TROOT("Statons","AM station Data analysis");
+
+    sprintf( comments,"AM Station logging, Sample rate: %d ", fSeconds);
+    fComments = new TObjString(comments);
+
+    SetupRoot();
+
+
     SET_DEBUG_STACK;
 }
 
@@ -94,15 +130,15 @@ Monitor::Monitor (void)
  *
  * Function Name : Monitor destructor
  *
- * Description :
+ * Description : clean up the resources we allocated
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 07-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -112,22 +148,71 @@ Monitor::Monitor (void)
 Monitor::~Monitor (void)
 {
     SET_DEBUG_STACK;
+    WriteConfiguration();
+    delete fEnv;
     delete fScope;
+    CloseRoot();
+    delete fName;
+    delete fNtuple;
 }
-
 
 /**
  ******************************************************************
  *
- * Function Name : Monitor function
+ * Function Name : SetupRoot
  *
- * Description :
+ * Description : Creat all the root elements. 
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 07-Jan-23
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+bool Monitor::SetupRoot (void)
+{
+    SET_DEBUG_STACK;
+
+    /* Connect to a file. */
+    char *name    = (char *) fName->GetUniqueName();
+    fName->NewUpdateTime();
+
+    CLogger::GetThis()->Log("# root Filename: %s\n", name); 
+
+    /* Open a TFile. */
+    fTFile  = new TFile( name, "RECREATE", "AM Station data analysis");
+
+    /*
+     * Setup NTUPLE
+     * These are the names of the variables that we want to monitor.
+     */
+    char *raw_names = (char *)"Index:Time:nTime:FMax:dBMax:dBArea";
+    /*
+     * Create Ntuple.
+     */
+    fNtuple = new TNtupleD("Stations","AM Stations ntuple",raw_names);
+    SET_DEBUG_STACK;
+    return true;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : CloseRoot
+ *
+ * Description : close out the current TFile 
+ *
+ * Inputs : NONE
+ *
+ * Returns : NONE
+ *
+ * Error Conditions : NONE
  * 
  * Unit Tested on: 
  *
@@ -136,58 +221,167 @@ Monitor::~Monitor (void)
  *
  *******************************************************************
  */
-double Monitor::GetPeakValue(double F, int N, const double *X, const double *Y)
+void Monitor::CloseRoot (void)
 {
+    SET_DEBUG_STACK;
+    // Save all objects in this file
+    fComments->Write("Comments");
+    fTFile->Write();
+    fTFile->Close();
+    delete fTFile;
+
+    SET_DEBUG_STACK;
+}
+
+/**
+ ******************************************************************
+ *
+ * Function Name : GetPeakValue
+ *
+ * Description : Get the peak amplitude in dBm for the FFT at the 
+ *               or around the specified frequency. 
+ *
+ * Inputs : F - frequency to look around. 
+ *
+ * Returns : the maxiumum value
+ *
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 06-Jan-23
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+double Monitor::GetPeakValue(void)
+{
+    SET_DEBUG_STACK;
     //const double  XPTS  = 2048.0;
     //const double  XINCR = 9.765625E+2;
     const int32_t window = 10;
-    double dx;
-
-    int32_t index=0;
-    do 
-    {
-	dx = F - X[index];
-	index++;
-    } while((index<N) && (dx>0.0));
-
     int32_t   i;
     double    MaxdB = -96.0;
-    uint32_t  IMax = 0;
-    //double    Fpt;
-    double dBm;
-    for (i=index-window;i< index+window;i++)
+    double    dBm;
+    /*
+     * look in a specified window. 
+     */
+    fMaxIndex = 0;
+    for (i=fIndex-window;i< fIndex+window;i++)
     {
-	//Fpt = X[i];
-	dBm = Y[i];
-	if (dBm > MaxdB)
+	if (i>-1)
 	{
-	    IMax  = i;
-	    MaxdB = dBm;
+	    dBm = fY[i];
+	    if (dBm > MaxdB)
+	    {
+		fMaxIndex  = i;
+		MaxdB = dBm;
+	    }
 	}
     }
-    cout << "Imax: " << IMax
-	 << " F: " << X[IMax]
-	 << " MaxdB: " << MaxdB
-	 << endl;
+    SET_DEBUG_STACK;
     return MaxdB;
 }
-#if 0
-void* Monitor::function(const char *Name)
+/**
+ ******************************************************************
+ *
+ * Function Name : GetPeakArea
+ *
+ * Description : Get the peak normalized Window Area
+ *               around the specified frequency. 
+ *
+ * Inputs : F - frequency to look around. 
+ *
+ * Returns : the maxiumum value
+ *
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 07-Jan-23
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+double Monitor::GetPeakArea(void)
 {
+    SET_DEBUG_STACK;
+    const int32_t window = 5; // kind of +/- 5kHz
+    int32_t   i;
+    double    TotaldB = 0.0;
+
+    /*
+     * look in a specified window. 
+     */
+    for (i=fIndex-window;i< fIndex+window;i++)
+    {
+	if (i>-1)
+	{
+	    TotaldB += fY[i];
+	}
+    }
+    
+    TotaldB = TotaldB/ (2.0*(double)window);
+    SET_DEBUG_STACK;
+    return TotaldB;
 }
-#endif
+/**
+ ******************************************************************
+ *
+ * Function Name : FindFrequencyIndex
+ *
+ * Description : What is the index into the fX array that closely 
+ *               matches what frequency we desire?
+ *
+ * Inputs : F - desired frequency in Hz. 
+ *
+ * Returns : none
+ *
+ * Error Conditions : none
+ * 
+ * Unit Tested on: 06-Jan-23
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void Monitor::FindFrequencyIndex(double F)
+{
+    SET_DEBUG_STACK;
+    double dx = 0.0;
+    /*
+     * Get a pointer into the frequency vector. 
+     * This won't change often. Like only when the program parameters 
+     * are changed.  
+     *
+     * Look for when the difference goes negative. 
+     */
+    fIndex = 0;
+    do 
+    {
+	dx = F - fX[fIndex];
+	fIndex++;
+    } while((fIndex<fN) && (dx>0.0));
+    fIndex--;   // we went one too far. 
+    CLogger::GetThis()->Log("# Frequency bin chosen: %f\n", fX[fIndex]);
+
+    SET_DEBUG_STACK;
+}
 /**
  ******************************************************************
  *
  * Function Name : Do
  *
- * Description :
+ * Description : perform a loop to acquire and log data regarding
+ *               the local AM radio stations. Samples on kSeconds
+ *               and finishes after kSampleTimeout seconds have elapsed
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
  * Unit Tested on: 
  *
@@ -199,100 +393,74 @@ void* Monitor::function(const char *Name)
 void Monitor::Do(void)
 {
     SET_DEBUG_STACK;
-    //Trace *   pTrace  = fScope->GetTrace();
-    uint8_t   Number  = 2; //fScope->GetSelectedTrace();
-    //DefTrace* pDefT   = pTrace->GetDef(Number+1);
-    double    *Y, *X;
-    uint32_t  n;
-    fRun = true;
-    double    maxval;
+    CLogger*        log     = CLogger::GetThis();
+    Trace *         pTrace  = fScope->GetTrace();
+    double          maxval, Area;
+    struct timespec now;
+    double          sec, nsec;
+    double          TIndex = 0.0;
+    uint32_t        SampleTimeSeconds = 0;
 
-    uint8_t index = 4;
+
+    /* If we are prompted for a file name change. do it. */
+    if (fName->ChangeNames())
+    {
+	log->LogTime("Change names.\n");
+	CloseRoot();
+	SetupRoot();
+    }
+
+    pTrace->SetSelectedTrace(1);  // FFT should be trace 2. 
 
     /*
-     * While we are running, get a scope trace every so often. 
+     * Get a pointer into the frequency vector. 
+     * This won't change often. Like only when the program parameters 
+     * are changed.  
      */
-    uint32_t seconds = 10 * 60; // sample every 10 minutes. 
+    fN     = fScope->Curve(&fX, &fY);
+
+    /*
+     * Find the index to look for the maximum power received. 
+     */
+    FindFrequencyIndex(AMStations[fAM_Index].Freq*1.0e3);
+
+    /* Loop for a long time. */
+    fRun = true;
     while(fRun)
     {
-	n = fScope->Curve(Number, &X, &Y);
-	if (n>0)
+	clock_gettime(CLOCK_REALTIME, &now);
+	nsec = 1.0e-9*(double)now.tv_nsec;
+	sec  = (double) now.tv_sec;
+
+	// Get the curve value. 
+	fN = fScope->Curve(&fX, &fY);
+	if (fN>0)
 	{
-	    maxval = GetPeakValue(AMStations[index].Freq, n, X, Y);  
-	    cout << "Got points: " << n 
-		 << " peak = " << maxval
-		 << endl;
+	    maxval = GetPeakValue();
+	    Area   = GetPeakArea();
+	    fNtuple->Fill(TIndex, sec, nsec, fX[fMaxIndex], maxval, Area);
+	    TIndex = TIndex + 1.0;
 	}
-	free(Y);
-	free(X);
+	 
+	free(fY);
+	free(fX);
+	/*
+	 * How much time has elapsed, roughtly? 
+	 * if SampleTimeout <0 then indefinite.
+	 */
+	SampleTimeSeconds = SampleTimeSeconds + fSeconds;
+	if ((SampleTimeSeconds > fSampleTimeout) && (fSampleTimeout>0))
+	{
+	    log->LogTime("Done sampling.\n");
+	    fRun = false;
+	}
 	// Set the sleep time to the sample rate. 
-	sleep(1); //seconds);
+	sleep(fSeconds); //seconds);
     }
     SET_DEBUG_STACK;
 }
 
-/**
- ******************************************************************
- *
- * Function Name : OpenLogFile
- *
- * Description : Open and manage the HDF5 log file
- *
- * Inputs : none
- *
- * Returns : NONE
- *
- * Error Conditions : NONE
- * 
- * Unit Tested on:  
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-bool Monitor::OpenLogFile(void)
-{
-    SET_DEBUG_STACK;
-#if 0
-    // USER TO FILL IN.
-    const char *Names = "Time:Lat:Lon:Z:NSV:PDOP:HDOP:VDOP:TDOP:VE:VN:VZ";
-    CLogger *pLogger = CLogger::GetThis();
-    /* Give me a file name.  */
-    const char* name = fn->GetUniqueName();
-    fn->NewUpdateTime();
-    SET_DEBUG_STACK;
 
-    f5Logger = new H5Logger(name,"Main Logger Dataset", NVar, false);
-    if (f5Logger->CheckError())
-    {
-	pLogger->Log("# Failed to open H5 log file: %s\n", name);
-	delete f5Logger;
-	f5Logger = NULL;
-	return false;
-    }
-    f5Logger->WriteDataTags(Names);
-
-    /* Log that this was done in the local text log file. */
-    time_t now;
-    char   msg[64];
-    SET_DEBUG_STACK;
-    time(&now);
-    strftime (msg, sizeof(msg), "%m-%d-%y %H:%M:%S", gmtime(&now));
-    pLogger->Log("# changed file name %s at %s\n", name, msg);
-
-    /*
-     * If the IPC is realized, put the current filename into it.
-     */ 
-    if (fIPC)
-    {
-	fIPC->UpdateFilename(name);
-    }
-    
-    fChangeFile = false;
-#endif
-    return true;
-}
 /**
  ******************************************************************
  *
@@ -316,57 +484,26 @@ bool Monitor::OpenLogFile(void)
 bool Monitor::ReadConfiguration(void)
 {
     SET_DEBUG_STACK;
-#if 0
-    CLogger *Logger = CLogger::GetThis();
-    ClearError(__LINE__);
-    Config *pCFG = new Config();
+    CLogger *log = CLogger::GetThis();
 
+    fEnv = new TEnv(".AMonitor");
+    log->Log("# AMonitor Loading prefs: %s \n", fEnv->GetRcName());
+
+    int32_t v = fEnv->GetValue("AMonitor.Verbose", 0);
+    log->SetVerbose(v);
+
+    // Sample rate, once every 60 seconds 
+    fSeconds = fEnv->GetValue("AMonitor.SampleRate", 60);
+    // Stop program after one day of seconds. 
+    fSampleTimeout = fEnv->GetValue("AMonitor.Timeout", 86400);
+    // Monitor station index 5 (AM 880)
+    fAM_Index = fEnv->GetValue("AMonitor.AMStation", 5);
     /*
-     * Open the configuragtion file. 
+     * make some notes in the logger before we actually run. 
      */
-    try{
-	pCFG->readFile(fConfigFileName);
-    }
-    catch( const FileIOException &fioex)
-    {
-	Logger->LogError(__FILE__,__LINE__,'F',
-			 "I/O error while reading configuration file.\n");
-	return false;
-    }
-    catch (const ParseException &pex)
-    {
-	Logger->Log("# Parse error at: %s : %d - %s\n",
-		    pex.getFile(), pex.getLine(), pex.getError());
-	return false;
-    }
+    log->Log("# time between samples %d seconds, run time %d seconds\n",
+	     fSeconds,fSampleTimeout);
 
-
-    /*
-     * Start at the top. 
-     */
-    const Setting& root = pCFG->getRoot();
-
-    // USER TO FILL IN
-    // Output a list of all books in the inventory.
-    try
-    {
-	int    Debug;
-	/*
-	 * index into group MainModule
-	 */
-	const Setting &MM = root["MainModule"];
-	MM.lookupValue("Logging",   fLogging);
-	MM.lookupValue("Debug",     Debug);
-	SetDebug(Debug);
-    }
-    catch(const SettingNotFoundException &nfex)
-    {
-	// Ignore.
-    }
-
-    delete pCFG;
-    pCFG = 0;
-#endif
     SET_DEBUG_STACK;
     return true;
 }
@@ -394,36 +531,15 @@ bool Monitor::ReadConfiguration(void)
 bool Monitor::WriteConfiguration(void)
 {
     SET_DEBUG_STACK;
-#if 0
-    CLogger *Logger = CLogger::GetThis();
-    ClearError(__LINE__);
-    Config *pCFG = new Config();
+    CLogger *log = CLogger::GetThis();
 
-    Setting &root = pCFG->getRoot();
+    log->Log("# AMonitor: Write Configuration.\n");
+    fEnv->SetValue("AMonitor.Verbose"   , (Int_t) log->GetVerbose());
+    fEnv->SetValue("AMonitor.SampleRate", (Int_t) fSeconds);
+    fEnv->SetValue("AMonitor.Timeout"   , (Int_t) fSampleTimeout);
+    fEnv->SetValue("AMonitor.AMStation" , (Int_t) fAM_Index);
+    fEnv->SaveLevel(kEnvUser);
 
-    // USER TO FILL IN
-    // Add some settings to the configuration.
-    Setting &MM = root.add("MainModule", Setting::TypeGroup);
-    MM.add("Debug",     Setting::TypeInt)     = 0;
-    MM.add("Logging",   Setting::TypeBoolean)     = true;
-
-    // Write out the new configuration.
-    try
-    {
-	pCFG->writeFile(fConfigFileName);
-	Logger->Log("# New configuration successfully written to: %s\n",
-		    fConfigFileName);
-
-    }
-    catch(const FileIOException &fioex)
-    {
-	Logger->Log("# I/O error while writing file: %s \n",
-		    fConfigFileName);
-	delete pCFG;
-	return(false);
-    }
-    delete pCFG;
-#endif
     SET_DEBUG_STACK;
     return true;
 }

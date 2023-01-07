@@ -12,7 +12,7 @@
 # Machine specific stuff
 #
 #
-TARGET = Monitor
+TARGET =AMonitor
 #
 # Compile time resolution.
 #
