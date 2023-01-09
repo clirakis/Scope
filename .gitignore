@@ -47,3 +47,8 @@ testme
 #
 # intermediate files for root compilation. 
 S_Dict.cpp
+
+#pictures
+*.png
+*.jpg
+*.gif

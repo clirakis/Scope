@@ -53,7 +53,7 @@ struct t_Station {
     double    SourcePower[2];  // Watts - Day/night
     double    Distance2Source; // meters
 };
-static struct t_Station AMStations[9] = {
+static struct t_Station AMStations[10] = {
     {"WMCA 570" , 38.2,  570.0, { 5000, 5000}, 64270.0},    // 0
     {"WFAN 660" , 30.4,  660.0, {50000,50000}, 50390.0},    // 1
     {"WOR 710"  , 35.1,  710.0, {50000,50000}, 59000.0},    // 2
@@ -61,7 +61,8 @@ static struct t_Station AMStations[9] = {
     {"WNBC 820" , 38.2,  820.0, {50000,50000}, 64270.0}, // ????
     {"WCBS 880" , 30.4,  880.0, {50000,50000}, 50510.0},    // 5
     {"WGNY 1220", 19.5, 1220.0, {10000.0, 180.0}, 30780.0},   // 6
-    {"WLNA 1420",  1.4, 1420.0, {5000.0,1000.0} ,  2000.0},   // 7
+    {"WRVP 1310", 12.5, 1310.0, {5000.0, 33.0},   25300.0},   // 7
+    {"WLNA 1420",  1.4, 1420.0, {5000.0,1000.0} ,  2000.0},   // 8
     {NULL, 0.0, 0.0}};
 
 
@@ -115,9 +116,14 @@ Monitor::Monitor (void)
      * We just need to initialize it. 
      */
     ::new TROOT("Statons","AM station Data analysis");
+    /*
+     * make some notes in the logger before we actually run. 
+     */
 
-    sprintf( comments,"AM Station logging, Sample rate: %d ", fSeconds);
+    sprintf( comments,"Sample rate: %d, Timeout: %d, AM index %d", 
+	     fSeconds, fSampleTimeout, fAM_Index);
     fComments = new TObjString(comments);
+    CLogger::GetThis()->Log("# %s\n", comments);
 
     SetupRoot();
 
@@ -192,8 +198,13 @@ bool Monitor::SetupRoot (void)
     /*
      * Setup NTUPLE
      * These are the names of the variables that we want to monitor.
+     * indexes
+     * WFAN - 1
+     * WCBS - 5
+     * WRVP - 7
+     * WLNA - 8
      */
-    char *raw_names = (char *)"Index:Time:nTime:FMax:dBMax:dBArea";
+    char *raw_names = (char *)"Index:Time:nTime:FMax:dBMax:dBArea:WFAN:WCBS:WRVP:WLNA";
     /*
      * Create Ntuple.
      */
@@ -318,10 +329,11 @@ double Monitor::GetPeakArea(void)
 	if (i>-1)
 	{
 	    TotaldB += fY[i];
+//	    cout << "index: " << i << " value: " << fY[i] << endl;
 	}
     }
     
-    TotaldB = TotaldB/ (2.0*(double)window);
+    TotaldB = TotaldB/ (2.0*(double)window-1);
     SET_DEBUG_STACK;
     return TotaldB;
 }
@@ -364,7 +376,6 @@ void Monitor::FindFrequencyIndex(double F)
 	fIndex++;
     } while((fIndex<fN) && (dx>0.0));
     fIndex--;   // we went one too far. 
-    CLogger::GetThis()->Log("# Frequency bin chosen: %f\n", fX[fIndex]);
 
     SET_DEBUG_STACK;
 }
@@ -400,7 +411,7 @@ void Monitor::Do(void)
     double          sec, nsec;
     double          TIndex = 0.0;
     uint32_t        SampleTimeSeconds = 0;
-
+    Double_t        Vec[10];
 
     /* If we are prompted for a file name change. do it. */
     if (fName->ChangeNames())
@@ -419,10 +430,8 @@ void Monitor::Do(void)
      */
     fN     = fScope->Curve(&fX, &fY);
 
-    /*
-     * Find the index to look for the maximum power received. 
-     */
     FindFrequencyIndex(AMStations[fAM_Index].Freq*1.0e3);
+    CLogger::GetThis()->Log("# Frequency bin chosen: %f\n", fX[fIndex]);
 
     /* Loop for a long time. */
     fRun = true;
@@ -436,9 +445,32 @@ void Monitor::Do(void)
 	fN = fScope->Curve(&fX, &fY);
 	if (fN>0)
 	{
+	    /*
+	     * Find the index to look for the maximum power received. 
+	     */
+	    FindFrequencyIndex(AMStations[fAM_Index].Freq*1.0e3);
 	    maxval = GetPeakValue();
 	    Area   = GetPeakArea();
-	    fNtuple->Fill(TIndex, sec, nsec, fX[fMaxIndex], maxval, Area);
+	    Vec[0] = TIndex;
+	    Vec[1] = sec;
+	    Vec[2] = nsec;
+	    Vec[3] = fX[fMaxIndex];
+	    Vec[4] = maxval;
+	    Vec[5] = Area;
+
+	    FindFrequencyIndex(AMStations[1].Freq*1.0e3);
+	    Vec[6] = GetPeakValue();
+
+	    FindFrequencyIndex(AMStations[5].Freq*1.0e3);
+	    Vec[7] = GetPeakValue();
+
+	    FindFrequencyIndex(AMStations[7].Freq*1.0e3);
+	    Vec[8] = GetPeakValue();
+
+	    FindFrequencyIndex(AMStations[8].Freq*1.0e3);
+	    Vec[9] = GetPeakValue();
+
+	    fNtuple->Fill(Vec);
 	    TIndex = TIndex + 1.0;
 	}
 	 
@@ -474,7 +506,7 @@ void Monitor::Do(void)
  *
  * Error Conditions : NONE
  * 
- * Unit Tested on:  
+ * Unit Tested on:  07-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -498,11 +530,6 @@ bool Monitor::ReadConfiguration(void)
     fSampleTimeout = fEnv->GetValue("AMonitor.Timeout", 86400);
     // Monitor station index 5 (AM 880)
     fAM_Index = fEnv->GetValue("AMonitor.AMStation", 5);
-    /*
-     * make some notes in the logger before we actually run. 
-     */
-    log->Log("# time between samples %d seconds, run time %d seconds\n",
-	     fSeconds,fSampleTimeout);
 
     SET_DEBUG_STACK;
     return true;
@@ -521,7 +548,7 @@ bool Monitor::ReadConfiguration(void)
  *
  * Error Conditions : NONE
  * 
- * Unit Tested on:  
+ * Unit Tested on:  07-Jan-23
  *
  * Unit Tested by: CBL
  *
