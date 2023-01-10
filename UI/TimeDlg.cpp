@@ -311,13 +311,19 @@ void TimeDlg::DoClose()
 void TimeDlg::Update(void)
 {
     SET_DEBUG_STACK;
-    TimeBase *tb = TimeBase::GetThis();
-
+    TimeBase* tb = TimeBase::GetThis();
+    Double_t  t; 
+    Int_t     i;
+ 
     // TESTME
+#ifdef WINDOW
     // This may be window or main depending on setup???
-    Double_t t = tb->WindowTime();
+    t = tb->WindowTime();
+#else
+    t = tb->MainTime();
+#endif
     // Find index
-    Int_t i = tb->IndexFromTime(t);
+    i = tb->IndexFromTime(t);
 
     // Set it in the dialog box to the correct value. 
     fTime->Select( i, kFALSE);
@@ -330,19 +336,19 @@ void TimeDlg::Update(void)
 /**
  ******************************************************************
  *
- * Function Name : 
+ * Function Name : SetTime
  *
- * Description : 
+ * Description : Set the time base for the trace. 
  *
- * Inputs : None
+ * Inputs : index - which one of the values for the timebase was selected?
  *
  * Returns : None
  *
  * Error Conditions :
  *
- * Unit Tested on: 14-Dec-14
+ * Unit Tested on: 
  *
- * Unit Tested by:
+ * Unit Tested by: CBL
  *
  *
  *******************************************************************
@@ -350,12 +356,15 @@ void TimeDlg::Update(void)
 void TimeDlg::SetTime(int index)
 {
     SET_DEBUG_STACK;
-    //double  val = TimeBase::Period[index].DT;
-
     TimeBase *tb = TimeBase::GetThis();
-    // Since I initially wrote this I didn't know the difference between
-    // main and window. For the moment, we will use main. 
-    tb->MainTime(index);   // indexes should be the same TESTME
+    /*
+     * Since I initially wrote this I didn't know the difference between
+     * main and window. For the moment, we will use main. 
+     *
+     * This is in response to a callback associated with fTime index. 
+     */
+    tb->MainTime((TimeBase::PERIOD)index);   // main window only. 
+    tb->WindowTime((TimeBase::PERIOD)index); // Set both the same
     UpdateLength(index);
     UpdateXIncr();
     SET_DEBUG_STACK;
@@ -374,7 +383,7 @@ void TimeDlg::SetTime(int index)
  *
  * Error Conditions :
  *
- * Unit Tested on: 14-Dec-14
+ * Unit Tested on: 
  *
  * Unit Tested by:
  *
@@ -386,21 +395,26 @@ void TimeDlg::UpdateLength(int index)
     SET_DEBUG_STACK;
     // Everything is in the class timebase. 
     TimeBase *tb = TimeBase::GetThis();
-    Bool_t rv;
+    double    len;
+    Bool_t    rv;
 
     // Make sure this index is up to date before making inquiry. 
     tb->SampleLengthsFromTimeIndex((TimeBase::PERIOD)index);
 
+    // Turn all buttons off, enable valid lengths. 
     for (uint32_t i=0;i<TimeBase::k_LENGTH_END;i++)
     {
 	rv = tb->SampleLengthByIndex(i).valid;
 	fLength[i]->SetEnabled(rv);
 	fLength[i]->SetState(kButtonUp);
     }
+#if 0
     // And which one is currently checked?
-    double wl = tb->WindowLength(true);
-    //cout << "Current window length." << wl << endl;
-    int32_t idx = tb->IndexFromLength(wl);
+    len = tb->WindowLength(true);
+#else
+    len = tb->MainLength(true);
+#endif
+    int32_t idx = tb->IndexFromLength(len);
     fLength[idx]->SetState(kButtonDown);
     SET_DEBUG_STACK;
 }

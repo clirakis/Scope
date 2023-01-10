@@ -14,7 +14,7 @@
     // Set the grid on. 
     Calvin->SetGrid(); 
     // Open the file with the data in it. 
-    TFile *tf = new TFile("/home/clirakis/Data/2023AMonitor008_00.root");
+    TFile *tf = new TFile("/home/clirakis/Data/2023AMonitor008_01.root");
 
     TMultiGraph *tmg = new TMultiGraph();
     TLegend     *tl  = new TLegend(0.1,0.7,0.48,0.9);
@@ -90,6 +90,7 @@
     Noko->cd();
     Noko->SetGrid();
 
+    //Stations->Draw("WFAN:WRVP","(WFAN>-85)&&(WRVP>-85)", "groff");
     Stations->Draw("WFAN:WRVP","", "groff");
     N = Stations->GetSelectedRows();
     X = Stations->GetV2();
