@@ -135,7 +135,7 @@ bool FileTrace::SaveRoot(const char *Name)
     Trace *      pTrace = scope->GetTrace();
     DSAFFT*      pFFT   = scope->GetFFT();
     bool         rv     = false;
-    char         Response[512];
+    char         Response[1024];  // this needs to be big. 
 
     // Get the current Data. 
     if(pTrace)

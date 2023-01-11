@@ -235,8 +235,46 @@ bool Monitor::SetupRoot (void)
 void Monitor::CloseRoot (void)
 {
     SET_DEBUG_STACK;
+    DSA602*      scope  = DSA602::GetThis();
+    Trace *      pTrace = scope->GetTrace();
+    DSAFFT*      pFFT   = scope->GetFFT();
+    char         Response[1024];  // this needs to be big. 
+
+
+    /*
+     * Get the index into the trace array.
+     */
+    uint8_t Number = pTrace->GetSelectedTrace();
+    DefTrace* pDefT   = pTrace->GetDef(Number);
+
     // Save all objects in this file
     fComments->Write("Comments");
+
+    string tmp(scope->GetWFMPRE()->Text());
+
+    /*
+     * tmp describes the waveform. 
+     * lets also get all the data about the mainframe configuration. 
+     */
+    if (scope->Command("CH?", Response, sizeof(Response)))
+    {
+	// This should work and have all the mainframe config in it.
+	TObjString Channel(Response);
+	Channel.Write("Channel");
+    }
+    /*
+     * Save the Waveform preamble with this. 
+     */
+    TObjString WFM(tmp.c_str());
+    WFM.Write("WFMPRE");
+    
+    /*
+     * And the same for the FFT data. 
+     */
+    pFFT->Update();
+    TObjString FFT(pFFT->Text().c_str());
+    FFT.Write("FFT");
+
     fTFile->Write();
     fTFile->Close();
     delete fTFile;

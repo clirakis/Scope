@@ -14,6 +14,9 @@
  * Classification : Unclassified
  *
  * References :
+ * DSA602 Programming guide
+ * 11A32
+ * 11A33 User supplements
  *
  *******************************************************************
  */
