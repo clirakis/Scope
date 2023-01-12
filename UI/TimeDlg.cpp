@@ -315,7 +315,10 @@ void TimeDlg::Update(void)
     Double_t  t; 
     Int_t     i;
  
-    // TESTME
+    // Query Everything
+    tb->Update();
+
+    // Then fetch the data to place into the dialog.
 #ifdef WINDOW
     // This may be window or main depending on setup???
     t = tb->WindowTime();
@@ -377,7 +380,11 @@ void TimeDlg::SetTime(int index)
  * Description : Based on user selection of time, update the available
  *               sample lengths
  *
- * Inputs : None
+ * Inputs : Given the current time base index, make the radio buttons
+ *          reflect the correct selected length, and also the
+ *          available lengths. 
+ *
+ *          Does not assume the 
  *
  * Returns : None
  *
@@ -404,15 +411,16 @@ void TimeDlg::UpdateLength(int index)
     // Turn all buttons off, enable valid lengths. 
     for (uint32_t i=0;i<TimeBase::k_LENGTH_END;i++)
     {
-	rv = tb->SampleLengthByIndex(i).valid;
-	fLength[i]->SetEnabled(rv);
-	fLength[i]->SetState(kButtonUp);
+	// What sample lengths are valid with this time index?
+	rv = tb->SampleLengthByIndex(i).valid; 
+	fLength[i]->SetEnabled(rv);   // false - grey, true - ok
+	fLength[i]->SetState(kButtonUp); // All buttons off
     }
 #if 0
     // And which one is currently checked?
-    len = tb->WindowLength(true);
+    len = tb->WindowLength();
 #else
-    len = tb->MainLength(true);
+    len = tb->MainLength();
 #endif
     int32_t idx = tb->IndexFromLength(len);
     fLength[idx]->SetState(kButtonDown);
@@ -443,11 +451,13 @@ void TimeDlg::UpdateLength(int index)
 void TimeDlg::SetLength(void)
 {
     SET_DEBUG_STACK;
+    TimeBase *tb = TimeBase::GetThis();
+
     /*
      * Which button sent us this message? We need the id as an index. 
      */
     TGButton *btn = (TGButton *) gTQSender;
-    Int_t id = btn->WidgetId();
+    Int_t    id   = btn->WidgetId();
     /* 
      * Make sure the radio behaviour is followed. 
      * uncheck the old button. 
@@ -465,7 +475,6 @@ void TimeDlg::SetLength(void)
 	    fLength[i]->SetState(kButtonUp);
 	}
     }
-    TimeBase *tb = TimeBase::GetThis();
     tb->MainLength(id); 
     UpdateXIncr();
 }

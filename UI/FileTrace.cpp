@@ -150,9 +150,7 @@ bool FileTrace::SaveRoot(const char *Name)
 	 * Get the index into the trace array.
 	 */
 	uint8_t Number = pTrace->GetSelectedTrace();
-	cout << "index selected." << (int) Number << endl;
 	DefTrace* pDefT   = pTrace->GetDef(Number);
-	cout << *pDefT << endl;
 
 	// Life is good. Lets get some additional data. 
  
@@ -188,6 +186,9 @@ bool FileTrace::SaveRoot(const char *Name)
 	pFFT->Update();
 	TObjString FFT(pFFT->Text().c_str());
 	FFT.Write("FFT");
+
+	TObjString Def(pDefT->Text().c_str());
+	Def.Write("DefTrace");
 
 	tf.Write();
 	tf.Close();

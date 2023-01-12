@@ -50,7 +50,17 @@ private:
     /// 
     void BuildDisplayArea();
     void FillDisplayArea();
-    void UpdateLength(int);
+    /*!
+     * Set the length radio box to 
+     * a) which lengths are valid to select given the input time index. 
+     * b) set the approprate button. 
+     *
+     * This assumes that an timebase Update has been issued. 
+     *
+     * inputs:
+     *   index - time index selected
+     */
+    void UpdateLength(int index);
     void UpdateXIncr(void);
 
     TGComboBox* fTime;
