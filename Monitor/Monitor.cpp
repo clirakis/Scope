@@ -16,7 +16,6 @@
  *
  ********************************************************************/
 // System includes.
-
 #include <iostream>
 using namespace std;
 #include <string>
@@ -71,15 +70,20 @@ static struct t_Station AMStations[10] = {
  *
  * Function Name : Monitor constructor
  *
- * Description :
+ * Description : Constructor, do the following: 
+ *               1) Connect to DSA602 through GPIB - fScope
+ *               2) Create a unique filename to log the data.  - fName
+ *               3) Read preferences from file using TEnv
+ *               4) Initialize the root package
+ *               5) Setup ntuple and all the other stuff. 
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 14-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -127,7 +131,6 @@ Monitor::Monitor (void)
 
     SetupRoot();
 
-
     SET_DEBUG_STACK;
 }
 
@@ -154,10 +157,10 @@ Monitor::Monitor (void)
 Monitor::~Monitor (void)
 {
     SET_DEBUG_STACK;
+    CloseRoot();
     WriteConfiguration();
     delete fEnv;
     delete fScope;
-    CloseRoot();
     delete fName;
     delete fNtuple;
 }
@@ -190,7 +193,8 @@ bool Monitor::SetupRoot (void)
     char *name    = (char *) fName->GetUniqueName();
     fName->NewUpdateTime();
 
-    CLogger::GetThis()->Log("# root Filename: %s\n", name); 
+    CLogger::GetThis()->Log("# SetupRoot: loggindg data to Filename: %s\n", 
+			    name); 
 
     /* Open a TFile. */
     fTFile  = new TFile( name, "RECREATE", "AM Station data analysis");
@@ -240,17 +244,21 @@ void Monitor::CloseRoot (void)
     DSAFFT*      pFFT   = scope->GetFFT();
     char         Response[1024];  // this needs to be big. 
 
-
     /*
      * Get the index into the trace array.
      */
-    uint8_t Number = pTrace->GetSelectedTrace();
-    DefTrace* pDefT   = pTrace->GetDef(Number);
+    uint8_t   Number = pTrace->GetSelectedTrace();
+    DefTrace* pDefT  = pTrace->GetDef(Number);
 
     // Save all objects in this file
     fComments->Write("Comments");
 
     string tmp(scope->GetWFMPRE()->Text());
+    /*
+     * Save the Waveform preamble with this. 
+     */
+    TObjString WFM(tmp.c_str());
+    WFM.Write("WFMPRE");
 
     /*
      * tmp describes the waveform. 
@@ -262,16 +270,12 @@ void Monitor::CloseRoot (void)
 	TObjString Channel(Response);
 	Channel.Write("Channel");
     }
-    /*
-     * Save the Waveform preamble with this. 
-     */
-    TObjString WFM(tmp.c_str());
-    WFM.Write("WFMPRE");
     
     /*
      * And the same for the FFT data. 
      */
     pFFT->Update();
+    cout << "FFT text: " << pFFT->Text() << endl;
     TObjString FFT(pFFT->Text().c_str());
     FFT.Write("FFT");
 
@@ -454,7 +458,7 @@ void Monitor::Do(void)
     /* If we are prompted for a file name change. do it. */
     if (fName->ChangeNames())
     {
-	log->LogTime("Change names.\n");
+	log->LogTime("# Do: Change names.\n");
 	CloseRoot();
 	SetupRoot();
     }
