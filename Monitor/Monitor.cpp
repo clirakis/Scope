@@ -93,7 +93,10 @@ static struct t_Station AMStations[10] = {
 Monitor::Monitor (void)
 {
     SET_DEBUG_STACK;
-    char comments[256];
+    CLogger* log = CLogger::GetThis();
+    char     comments[256];
+    time_t   now;
+    time(&now);
 
     fMonitor = this;
     /*
@@ -127,7 +130,10 @@ Monitor::Monitor (void)
     sprintf( comments,"Sample rate: %d, Timeout: %d, AM index %d", 
 	     fSeconds, fSampleTimeout, fAM_Index);
     fComments = new TObjString(comments);
-    CLogger::GetThis()->Log("# %s\n", comments);
+    log->Log("# %s\n", comments);
+
+    now += fSampleTimeout; 
+    log->Log("# Job will end: %s: " ,  ctime(&now));
 
     SetupRoot();
 
@@ -240,16 +246,17 @@ void Monitor::CloseRoot (void)
 {
     SET_DEBUG_STACK;
     DSA602*      scope  = DSA602::GetThis();
-    Trace *      pTrace = scope->GetTrace();
     DSAFFT*      pFFT   = scope->GetFFT();
     char         Response[1024];  // this needs to be big. 
 
     /*
      * Get the index into the trace array.
      */
+#if 0
+    Trace *      pTrace = scope->GetTrace();
     uint8_t   Number = pTrace->GetSelectedTrace();
     DefTrace* pDefT  = pTrace->GetDef(Number);
-
+#endif
     // Save all objects in this file
     fComments->Write("Comments");
 
@@ -275,7 +282,6 @@ void Monitor::CloseRoot (void)
      * And the same for the FFT data. 
      */
     pFFT->Update();
-    cout << "FFT text: " << pFFT->Text() << endl;
     TObjString FFT(pFFT->Text().c_str());
     FFT.Write("FFT");
 
@@ -452,7 +458,7 @@ void Monitor::Do(void)
     struct timespec now;
     double          sec, nsec;
     double          TIndex = 0.0;
-    uint32_t        SampleTimeSeconds = 0;
+    uint32_t        StartSeconds;
     Double_t        Vec[10];
 
     /* If we are prompted for a file name change. do it. */
@@ -474,6 +480,9 @@ void Monitor::Do(void)
 
     FindFrequencyIndex(AMStations[fAM_Index].Freq*1.0e3);
     CLogger::GetThis()->Log("# Frequency bin chosen: %f\n", fX[fIndex]);
+
+    clock_gettime(CLOCK_REALTIME, &now);
+    StartSeconds = now.tv_sec;
 
     /* Loop for a long time. */
     fRun = true;
@@ -521,12 +530,17 @@ void Monitor::Do(void)
 	/*
 	 * How much time has elapsed, roughtly? 
 	 * if SampleTimeout <0 then indefinite.
+	 * Adding in fSeconds doesn't seem to work well. try this instead. 
+	 * 
 	 */
-	SampleTimeSeconds = SampleTimeSeconds + fSeconds;
-	if ((SampleTimeSeconds > fSampleTimeout) && (fSampleTimeout>0))
+	// SampleTimeSeconds = SampleTimeSeconds + fSeconds;
+	if (fSampleTimeout>0)
 	{
-	    log->LogTime("Done sampling.\n");
-	    fRun = false;
+	    if ((sec-StartSeconds) > fSampleTimeout)
+	    {
+		log->LogTime("Done sampling.\n");
+		fRun = false;
+	    }
 	}
 	// Set the sleep time to the sample rate. 
 	sleep(fSeconds); //seconds);

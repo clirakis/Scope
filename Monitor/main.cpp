@@ -140,7 +140,7 @@ static bool Initialize(void)
     // User initialization goes here. 
     sprintf(msg, "%d.%d",MAJOR_VERSION, MINOR_VERSION);
     version = atof( msg);
-    logger = new CLogger("Monitor.log", "Monitor", version);
+    logger = new CLogger("AMonitor.log", "AMonitor", version);
     logger->SetVerbose(VerboseLevel);
 
     return true;
