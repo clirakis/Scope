@@ -199,8 +199,7 @@ bool Monitor::SetupRoot (void)
     char *name    = (char *) fName->GetUniqueName();
     fName->NewUpdateTime();
 
-    CLogger::GetThis()->Log("# SetupRoot: loggindg data to Filename: %s\n", 
-			    name); 
+    CLogger::GetThis()->Log("# SetupRoot: log data to : %s\n", name); 
 
     /* Open a TFile. */
     fTFile  = new TFile( name, "RECREATE", "AM Station data analysis");
