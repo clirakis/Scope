@@ -52,3 +52,6 @@ S_Dict.cpp
 *.png
 *.jpg
 *.gif
+
+#text files
+*.txt
