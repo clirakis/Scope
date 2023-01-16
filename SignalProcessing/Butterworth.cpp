@@ -42,9 +42,13 @@ using namespace std;
  *
  * Function Name : Butterworth constructor
  *
- * Description :
+ * Description : Construct a filter of the type indicated in the last argument
  *
  * Inputs :
+ *         FilterOrder
+ *         Lcutoff    - Lower frequency cutoff, nomalized
+ *         Ucutoff    - Upper frequency cutoff, normalized
+ *         Type       - Bandpass, Lowpass, Highpass
  *
  * Returns :
  *
@@ -57,15 +61,29 @@ using namespace std;
  *
  *******************************************************************
  */
-Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff)
+Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff,
+			  FilterType Type)
 {
     SET_DEBUG_STACK;
     fFilterOrder = FilterOrder;
     fLowerCutoff = Lcutoff;
     fUpperCutoff = Ucutoff;
+    fType        = Type;
 
-    ComputeDenCoeffs();
-    ComputeNumCoeffs();
+    switch(Type)
+    {
+    case kBANDPASS:
+	ComputeDenCoeffs();
+	ComputeNumCoeffs();
+	break;
+    case kLOWPASS:
+    case kHIPASS:
+	cout << "NOT IMPLEMENTED." << endl;
+	break;
+    case kALOWPASS: // analog low pass. 
+	// nothing to do right now. 
+	break;
+    }
 
     SET_DEBUG_STACK;
 }
@@ -75,15 +93,15 @@ Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff)
  *
  * Function Name : Butterworth destructor
  *
- * Description :
+ * Description : Does nothing right now
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 16-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -95,21 +113,48 @@ Butterworth::~Butterworth (void)
     SET_DEBUG_STACK;
     SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : ClearAll
+ *
+ * Description : Reset all the vectors in prep for a recalculation 
+ *
+ * Inputs : NONE
+ *
+ * Returns : NONE
+ *
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+void Butterworth::ClearAll(void)
+{
+    SET_DEBUG_STACK;
+    fDenomCoeffs.clear();
+    fNumCoeffs.clear();
+    SET_DEBUG_STACK;
+}
 
 /**
  ******************************************************************
  *
  * Function Name : ComputeDenCoeffs
  *
- * Description : Compute the a's of the filter
+ * Description : Compute the a's of the filter, for a bandpass implementation
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on:  16-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -178,7 +223,7 @@ void Butterworth::ComputeDenCoeffs(void)
  *
  * Description : compute numerator, in an FIR, these are the b 
  * coefficients. Compute the vector of the numerator and put it into
- * <vector> fNumCoeffs.
+ * <vector> fNumCoeffs. Bandpass!
  *
  * Inputs : NONE
  *
@@ -186,7 +231,7 @@ void Butterworth::ComputeDenCoeffs(void)
  *
  * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 16-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -235,9 +280,14 @@ void Butterworth::ComputeNumCoeffs(void)
     double Wn = sqrt(cp[0] * cp[1]);
     Wn = 2.0*atan2(Wn, 4);
 
-    //double kern; // Not sure if this is used
-    const std::complex<double> result(-1, 0);
+#if 0
+    // Commenting on how the data is normalized, see below. 
+    double kern; // Not sure if this is used
+    kern = exp(-j*w*(0:length(b)-1));
+    b = real(b*(kern*den(:))/(kern*b(:)));
+#endif
 
+    const std::complex<double> result(-1, 0);
     for (i=0; i<2*fFilterOrder+1; i++)
     {
 	NormalizedKernel[i] = exp(-sqrt(result)*Wn*Numbers[i]);
@@ -324,15 +374,15 @@ vector<double> Butterworth::filter(vector<double>x)
  *
  * Function Name : TrinomialMultiply
  *
- * Description : Looks ok
+ * Description : Looks ok , Bandpass function
  *
- * Inputs : vectors to perform multiplicaiton on
+ * Inputs : vectors to perform multiplicaiton
  *
  * Returns : resulting vector
  *
  * Error Conditions : NONE
  * 
- * Unit Tested on: 
+ * Unit Tested on: 16-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -379,7 +429,7 @@ vector<double> Butterworth::TrinomialMultiply(vector<double> b,
  *
  * Function Name : ComputeLP
  *
- * Description : Analog lowpass filter coefficients. 
+ * Description : Analog lowpass filter coefficients. BANDPASS
  * CHECK
  *
  * Inputs : NONE
@@ -419,7 +469,7 @@ vector<double> Butterworth::ComputeLP(void)
  *
  * Function Name : ComputeHP
  *
- * Description : High pass coefficients
+ * Description : High pass coefficients, BANSPASS
  *               Check
  *
  * Inputs : None
@@ -449,6 +499,194 @@ vector<double> Butterworth::ComputeHP(void)
     }
     SET_DEBUG_STACK;
     return NumCoeffs;
+}
+
+
+/**
+******************************************************************
+*
+* Function Name : ALowPass
+*
+* Description : Analog lowpass filter coefficients computation
+*          https://exstrom.com/journal/sigproc/alpbw.c
+*          https://en.wikipedia.org/wiki/Butterworth_filter
+*          https://www.electronics-tutorials.ws/filter/filter_8.html
+*          https://www.electronics-notes.com/articles/radio/rf-filters/butterworth-formula-equations-calculations.php
+*          "Electronics Equations Handbook" by Stephen J Erst
+*              1989 tab books, page 62
+*
+*          Resulting values
+*          - The termination resistances are assumed to equal 1.
+*          - For a termination resistance equal to R 
+*          - L(actual) = L(output) * R
+*          - C(actual) = C(output) / R
+*          
+*
+* Inputs : 
+*      Frequency   - 3dB point in Hz
+*      Termination - True, source and load resistances are equal.
+*
+* Returns : vector of coefficients
+*
+* Error Conditions : NONE
+* 
+* Unit Tested on: 
+*
+* Unit Tested by: CBL
+*
+*
+*******************************************************************
+*/
+void Butterworth::ALowPass(double Frequency, bool Termination)
+{
+    SET_DEBUG_STACK;
+    double   omega = 2.0* M_PI * Frequency;
+    double   x;                              // scratch variable. 
+    uint16_t i, j, k;                        // index variable
+    uint16_t m;
+    double   *b, *c, *d, *u, *v;
+    double   a[3], r;
+    uint16_t na, nb, nc, nu, nv;
+
+#if 0
+    int n, m, i, j, k;
+    int na, nb, nc, nu, nv;
+
+
+    if(argc < 4){
+	printf("Usage: %s n t f\n", argv[0]);
+	printf("  n = filter order\n");
+	printf("  t = termination\n");
+	printf("     0 = same source and load resistance\n");
+	printf("     1 = either source or load resistance\n");
+	printf("  f = 3db cutoff frequency\n");
+	return(1);}
+  
+    n = (int)strtol(argv[1], NULL, 10);
+    char t = argv[2][0];
+    double w = strtod(argv[3],NULL);
+    w *= 2.0*M_PI;
+#endif
+    if(Termination)
+    {
+	for(i=0; i<fFilterOrder; ++i)
+	{
+	    x = 2.0*sin(M_PI*(double)(2*i+1)/(double)(2*fFilterOrder))/omega;
+	    printf("%1.10lf\n", x);
+	}
+	return;
+    }
+
+    b = (double *)malloc((fFilterOrder+1) * sizeof(double));
+    c = (double *)malloc((fFilterOrder+1) * sizeof(double));
+
+    // initialize the Butterworth polynomial
+    if(fFilterOrder % 2 == 1)
+    {
+	b[0] = b[1] = 1.0;
+	nb = 2;
+	m = (fFilterOrder - 1)/2;
+    }
+    else
+    {
+	b[0] = 1.0;
+	nb = 1;
+	m = fFilterOrder/2;
+    }
+
+    // calculate the Butterworth polynomial
+    for(k=0; k<m; ++k)
+    {
+	a[0] = 1.0;
+	a[1] = 2.0*sin(M_PI*(double)(2*k+1)/(double)(2*fFilterOrder));
+	a[2] = 1.0;
+	na = 3;
+	nc = na + nb - 1;
+	// perform the convolution: a[0,...,na-1] * b[0,...,nb-1]
+	// producing the sequence c[0,...,nc-1] nc=na+nb-1
+	for(i = 0; i < nb; ++i)
+	{
+	    c[i] = 0.0;
+	    for(j = i < na ? 0 : i - na + 1; j <= i; ++j)
+		c[i] += a[i-j] * b[j];
+	}
+	for(i = nb; i < nc; ++i)
+	{
+	    c[i] = 0.0;
+	    for(j = i < na ? 0 : i - na + 1; j < nb; ++j)
+	    {
+		c[i] += a[i-j]*b[j];
+	    }
+	}
+	d = b;
+	b = c;
+	c = d;
+	nb = nc;
+    }
+
+    // print Butterworth polynomial coefficient values
+    //  printf("\nPolynomial coefficient values\n");
+    //  for(i=0; i<nb; ++i) printf("%1.6lf ", b[i]);
+    //  printf("\n\n");
+
+    // put odd coefficients in c and even coefficients in b
+    for(i=1, nb=1, nc=0; i<=fFilterOrder; i+=2, ++nc)
+    {
+	c[(i-1)/2] = b[i];
+	if(i < fFilterOrder)
+	{
+	    b[(i+1)/2] = b[i+1];
+	    ++nb;
+	}
+    }
+
+    // make u the larger of b and c
+    // make v the smaller of b and c
+    if(nb > nc)
+    {
+	u = b;
+	nu = nb;
+	v = c;
+	nv = nc;
+    }
+    else
+    {
+	u = c;
+	nu = nc;
+	v = b;
+	nv = nb;
+    }
+
+    // calculate component values
+    cout << std::fixed << std::setw(6) << std::setprecision(6);
+    cout << "Filter component values for 3dB point at. "
+	 << Frequency  << endl;
+
+    bool odd = true;
+    while(nu>0 && nv>0)
+    {
+	if(odd)
+	{
+	    r=u[nu-1]/v[nv-1];
+	    cout << "C: " << r/omega << endl;
+	    for(i=1; i<nv; ++i) u[nu-i-1]=u[nu-i-1]-r*v[nv-i-1];
+	    --nu;
+	    odd = false;
+	}
+	else
+	{
+	    r=v[nv-1]/u[nu-1];
+	    cout << "L " << r/omega << endl;
+	    for(i=1; i<nu; ++i) v[nv-i-1]=v[nv-i-1]-r*u[nu-i-1];
+	    --nv;
+	    odd = true;
+	}
+    }
+    printf("\n\n");
+    free(u);
+    free(v);
+
+    SET_DEBUG_STACK;
 }
 
 

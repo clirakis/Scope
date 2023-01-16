@@ -15,6 +15,7 @@
  *
  * References :
  * https://github.com/nxsEdson/Butterworth-Filter/blob/master/butterworth.cpp
+ * and a bunch more
  *
  *******************************************************************
  */
@@ -27,12 +28,61 @@
 /// Create a butterworth filter
 class Butterworth {
 public:
-    /// Default Constructor
-    Butterworth(uint16_t FilterOrder, double Lcutoff, double Ucutoff);
+
+    // What type of filter is it? 
+    enum FilterType {kBANDPASS=0, kLOWPASS, kHIPASS, kALOWPASS};
+
+
+    /*!
+     * Description: 
+     *  Butterworth constructor.   
+     *
+     * Arguments:
+     *   
+     *
+     * returns:
+     *    
+     */
+    Butterworth(uint16_t FilterOrder, double Lcutoff, double Ucutoff, 
+		FilterType Type=kBANDPASS);
+
+
     /// Default destructor
+    /*!
+     * Description: 
+     *  
+     *
+     * Arguments:
+     *   
+     *
+     * returns:
+     *    
+     */
     ~Butterworth();
+
+
     /// Butterworth function
     vector<double> filter(vector<double>x);
+
+
+    /*!
+     * Description: 
+     *  Compute lowpass component values for an analog filter. 
+     *  Based on code from:
+     *  https://exstrom.com/journal/sigproc/alpbw.c
+     *  Schematics and write up here: 
+     *  https://exstrom.com/journal/sigproc/asigproc.html
+     *
+     * Arguments:
+     *   Frequency - 3dB point in Hz
+     *   Termination - true equal source and load resistances
+     *
+     * returns:
+     *    
+     */
+    void ALowPass(double Frequency, bool Termination);
+
+
     /*!
      * Description: 
      *   print out the entire data about this class. 
@@ -118,11 +168,29 @@ private:
     void ComputeDenCoeffs(void);
 
 
+
+    /*!
+     * Description: 
+     *   ClearAll -- Clear the vectors for a recalculation
+     *
+     * Arguments:
+     *   NONE
+     *
+     * Returns: NONE
+     *
+     * Errors: NONE
+     *
+     */
+    void ClearAll(void); 
+
+
     uint16_t       fFilterOrder;
     double         fLowerCutoff;
     double         fUpperCutoff;
 
     vector<double> fDenomCoeffs;
     vector<double> fNumCoeffs;
+
+    FilterType     fType; 
 };
 #endif

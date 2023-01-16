@@ -108,7 +108,8 @@ ProcessCommandLineArgs(int argc, char **argv)
         }
     } while(option != -1);
 }
-static void Do(void)
+#if 0
+static void Test1(void)
 {
     SET_DEBUG_STACK;
     //     Filter Order
@@ -137,7 +138,7 @@ static void Do(void)
     FrequencyBands[0] = 0.3;
     FrequencyBands[1] = 0.42;
 #endif
-#if 1
+#if 0
     /*
      * initial test in example found:
      * https://stackoverflow.com/questions/10373184/bandpass-butterworth-filter-implementation-in-c
@@ -173,7 +174,41 @@ static void Do(void)
      * CHECK!!
      */
 #endif
+#if 1
+    FiltOrd = 4;
+    FrequencyBands[0] = 0.1;
+    FrequencyBands[1] = 0.0;
 
+    /*
+     * Python results:
+     *
+     * b, a = scipy.signal.butter(4, 0.1)
+     * print("a: ", a)
+     * print("b: ", b)
+     *
+     * a:  [ 1.         -3.18063855  3.86119435 -2.11215536  0.43826514]
+     * b:  [0.0004166 0.0016664 0.0024996 0.0016664 0.0004166]
+     *
+     * My results
+     * Butterworth: ============================================
+     *    Filter Order: 3
+     *    Lower Cutoff: 0.100000
+     *    Upper Cutoff: 0.000000
+     *
+     * (a) Denominator (7): 
+     *     1.000000, -6.626095, 18.340236, -27.143573, 22.650250, -10.100251, 
+     *     1.879433, 
+     * (b) Numerator (7): 
+     *     -inf, -nan, inf, -nan, -inf, -nan, 
+     *     inf, 
+     * ============================================
+     *
+     * Which appears to imply that this does not work for LP alone. 
+     * Only BP
+     *
+     * https://dsp.stackexchange.com/questions/60277/is-the-typical-implementation-of-low-pass-filter-in-c-code-actually-not-a-typica
+     */
+#endif
 
     /*
      * Pass Numerator Coefficients and Denominator Coefficients arrays 
@@ -209,6 +244,31 @@ static void Do(void)
     }
     ofile.close();
 }
+#endif
+#if 1
+static void Test2(void)
+{
+    /*
+     * https://www.electronics-notes.com/articles/radio/rf-filters/butterworth-formula-equations-calculations.php
+     * 1 ohm source
+     * 1 ohm sink
+     * 1H inductor
+     * 2F capacitor - text different from diagram. 
+     * cutoff is 0.159Hz
+     * not so great 
+     * 
+     * using an example from the book Electronics Equation Handbook
+     * Fc = 60.0
+     * N  = 2
+     * C = 0.00530516
+     * L = 0.00375132
+     * CHECK!!
+     */
+    Butterworth bw( 2, 0.0, 0.0, Butterworth::kALOWPASS);
+    cout << "Butterworth: " << bw << endl;
+    bw.ALowPass(60.0, false);
+}
+#endif
 /**
  ******************************************************************
  *
@@ -278,7 +338,7 @@ int main(int argc, char **argv)
     ProcessCommandLineArgs(argc, argv);
     if (Initialize())
     {
-	Do();
+	Test2();
     }
     Terminate(0);
 }
