@@ -21,11 +21,15 @@
  * https://github.com/scipy/scipy/blob/dde50595862a4f9cede24b5d1c86935c30f1f88a/scipy/signal/_filter_design.py
  * 
  * https://github.com/scipy/scipy/tree/main/scipy/signal
+ * https://stackoverflow.com/questions/10373184/bandpass-butterworth-filter-implementation-in-c
+ *
+ * https://exstrom.com/journal/sigproc/
  *
  ********************************************************************/
 // System includes.
 #include <iostream>
 using namespace std;
+#include <iomanip>
 #include <string>
 #include <cmath>
 
@@ -97,7 +101,7 @@ Butterworth::~Butterworth (void)
  *
  * Function Name : ComputeDenCoeffs
  *
- * Description :
+ * Description : Compute the a's of the filter
  *
  * Inputs :
  *
@@ -117,6 +121,7 @@ void Butterworth::ComputeDenCoeffs(void)
     SET_DEBUG_STACK;
     uint16_t k;                 // loop variable
 
+    // Temporary vectors for operations. 
     vector<double> RCoeffs;     // z^-2 coefficients 
     vector<double> TCoeffs;     // z^-1 coefficients
 
@@ -148,12 +153,18 @@ void Butterworth::ComputeDenCoeffs(void)
 
     fDenomCoeffs[1] = fDenomCoeffs[0];
     fDenomCoeffs[0] = 1.0;
+    /*
+     * Why preincrement rather than post increment? 
+     */
     for (k = 3; k<= 2*fFilterOrder; ++k)
     {
 	fDenomCoeffs[k] = fDenomCoeffs[2*k-2];
     }
 
-    // Get rid of the extra space used in the calculation. 
+    /*
+     * Get rid of the extra space used in the calculation.
+     * different
+     */ 
     for (uint16_t i = fDenomCoeffs.size(); i>(2*fFilterOrder+1);i--)
     {
 	fDenomCoeffs.pop_back();
@@ -165,11 +176,13 @@ void Butterworth::ComputeDenCoeffs(void)
  *
  * Function Name : ComputeNumCoeffs
  *
- * Description :
+ * Description : compute numerator, in an FIR, these are the b 
+ * coefficients. Compute the vector of the numerator and put it into
+ * <vector> fNumCoeffs.
  *
- * Inputs :
+ * Inputs : NONE
  *
- * Returns :
+ * Returns : NONE
  *
  * Error Conditions : NONE
  * 
@@ -184,60 +197,70 @@ void Butterworth::ComputeNumCoeffs(void)
 {
     SET_DEBUG_STACK;
     vector<double> TCoeffs;
-    //vector<double> NumCoeffs(2*FilterOrder+1);
+    uint16_t       i;
+
     // https://en.cppreference.com/w/cpp/numeric/complex
+    // Different
     vector<complex<double>> NormalizedKernel(2*fFilterOrder+1);
 
+    /*
+     * Create a vector of linearly increasing numbers. 
+     * Not sure this is the most efficient way to do this. 
+     */
     vector<double> Numbers;
-    for (uint16_t n = 0; n < fFilterOrder*2+1; n++)
+    for (i = 0;i<2*fFilterOrder+1;i++)
     {
-	Numbers.push_back((double)n);
+	Numbers.push_back((double)i);
     }
 
-    TCoeffs = ComputeHP();
+    TCoeffs = ComputeHP();  // Check
 
-    for (uint16_t i = 0; i < fFilterOrder; ++i)
+    /*
+     * Good
+     * OK - Should probably make sure this is clear at some point.
+     */ 
+    for (i = 0;i<fFilterOrder; ++i)
     {
 	fNumCoeffs.push_back(TCoeffs[i]);
 	fNumCoeffs.push_back(0.0);
     }
-    fNumCoeffs[2*fFilterOrder] = TCoeffs[fFilterOrder];
+    fNumCoeffs.push_back(TCoeffs[fFilterOrder]);
 
+    //  ==========================================
     double cp[2];
     cp[0] = 4.0*tan(M_PI_2*fLowerCutoff);
     cp[1] = 4.0*tan(M_PI_2*fUpperCutoff);
-    //cout << "Lcutoff: " << M_PI_2*fLowerCutoff << " " << cp[0] << endl;
-    //double Bw = cp[1] - cp[0];
 
     //center frequency
     double Wn = sqrt(cp[0] * cp[1]);
-    Wn = 2 * atan2(Wn, 4);
+    Wn = 2.0*atan2(Wn, 4);
 
+    //double kern; // Not sure if this is used
     const std::complex<double> result(-1, 0);
 
-    for (int k = 0; k<fFilterOrder* 2+1; k++)
+    for (i=0; i<2*fFilterOrder+1; i++)
     {
-	NormalizedKernel[k] = exp(-sqrt(result)*Wn*Numbers[k]);
+	NormalizedKernel[i] = exp(-sqrt(result)*Wn*Numbers[i]);
     }
 
     double b   = 0;
     double den = 0;
-    for (uint16_t d = 0; d<fFilterOrder*2+1; d++)
+    for (i=0; i<2*fFilterOrder+1; i++)
     {
-	b   += real(NormalizedKernel[d] * fNumCoeffs[d]);
-	den += real(NormalizedKernel[d] * fDenomCoeffs[d]);
+	b   += real(NormalizedKernel[i] * fNumCoeffs[i]);
+	den += real(NormalizedKernel[i] * fDenomCoeffs[i]);
     }
 
-    for (int c = 0; c < fFilterOrder*2+1; c++)
+    for (i=0; i<2*fFilterOrder+1; i++)
     {
-	fNumCoeffs[c] = (fNumCoeffs[c] * den)/b;
+	fNumCoeffs[i] = (fNumCoeffs[i] * den)/b;
     }
 
-    for (int i = fNumCoeffs.size()- 1; i > fFilterOrder*2+1; i--)
+    // This in general is not in the other code. 
+    for (i=fNumCoeffs.size()-1; i>=(2*fFilterOrder+1); i--)
     {
 	fNumCoeffs.pop_back();
     }
-
     SET_DEBUG_STACK;
 }
 /**
@@ -266,9 +289,11 @@ vector<double> Butterworth::filter(vector<double>x)
     uint32_t len_b = fNumCoeffs.size();
     uint32_t len_a = fDenomCoeffs.size();
 
+    // working variables. 
     vector<double> zi(len_b);
     vector<double> filter_x(len_x);
 
+    // Vastly different
     if (len_a == 1)
     {
 	for (uint32_t m = 0; m<len_x; m++)
@@ -299,7 +324,7 @@ vector<double> Butterworth::filter(vector<double>x)
  *
  * Function Name : TrinomialMultiply
  *
- * Description :
+ * Description : Looks ok
  *
  * Inputs : vectors to perform multiplicaiton on
  *
@@ -355,6 +380,7 @@ vector<double> Butterworth::TrinomialMultiply(vector<double> b,
  * Function Name : ComputeLP
  *
  * Description : Analog lowpass filter coefficients. 
+ * CHECK
  *
  * Inputs : NONE
  *
@@ -373,12 +399,10 @@ vector<double> Butterworth::ComputeLP(void)
 {
     SET_DEBUG_STACK;
     vector<double> NumCoeffs(fFilterOrder + 1);
-    int m;
 
     NumCoeffs[0] = 1;
     NumCoeffs[1] = fFilterOrder;
-    m = fFilterOrder/2;
-    for (uint16_t i = 2; i <= m; ++i)
+    for (uint16_t i = 2; i <= fFilterOrder/2; ++i)
     {
 	NumCoeffs[i] = (double)(fFilterOrder - i + 1)*NumCoeffs[i - 1] / i;
 	NumCoeffs[fFilterOrder-i] = NumCoeffs[i];
@@ -395,7 +419,8 @@ vector<double> Butterworth::ComputeLP(void)
  *
  * Function Name : ComputeHP
  *
- * Description :
+ * Description : High pass coefficients
+ *               Check
  *
  * Inputs : None
  *
@@ -434,13 +459,15 @@ vector<double> Butterworth::ComputeHP(void)
  *
  * Description : format all the channel information for output
  *
- * Inputs :
+ * Inputs : 
+ *       output stream to format 
+ *       Butterworth class to print out
  *
- * Returns :
+ * Returns : fully functional stream
  *
- * Error Conditions :
+ * Error Conditions : NONE
  * 
- * Unit Tested on: 27-Nov-14
+ * Unit Tested on: 16-Jan-23
  *
  * Unit Tested by: CBL
  *
@@ -450,20 +477,29 @@ vector<double> Butterworth::ComputeHP(void)
 ostream& operator<<(ostream& output, const Butterworth &n)
 {
     SET_DEBUG_STACK;
+    uint16_t i;
+    output << std::fixed << std::setw(6) << std::setprecision(6);
     output << "============================================" << endl
 	   << "    Filter Order: " << n.fFilterOrder << endl
 	   << "    Lower Cutoff: " << n.fLowerCutoff << endl
-	   << "    Upper Cutoff: " << n.fUpperCutoff << endl;
-    output << "Denominator: ";
-    for (uint16_t i=0;i<n.fDenomCoeffs.size(); i++)
+	   << "    Upper Cutoff: " << n.fUpperCutoff << endl << endl;
+
+    output << "(a) Denominator (" << n.fDenomCoeffs.size() << "): " 
+	   << endl << "     ";
+    for (i=0;i<n.fDenomCoeffs.size(); i++)
     {
-	output << n.fDenomCoeffs[i] << ",";
+	output << n.fDenomCoeffs[i] << ", ";
+	if ((i>0) && (i%5 == 0)) output << endl << "     ";
     }
     output << endl;
-    output << "Numerator: ";
-    for (uint16_t i=0;i<n.fNumCoeffs.size(); i++)
+
+    output << "(b) Numerator (" << n.fNumCoeffs.size() << "): " 
+	   << endl << "     ";
+
+    for (i=0;i<n.fNumCoeffs.size(); i++)
     {
-	output << n.fNumCoeffs[i] << ",";
+	output << n.fNumCoeffs[i] << ", ";
+	if ((i>0) && (i%5 == 0)) output << endl << "     ";
     }
     output << endl;
     output << "============================================" << endl;

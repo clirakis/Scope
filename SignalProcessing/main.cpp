@@ -111,14 +111,13 @@ ProcessCommandLineArgs(int argc, char **argv)
 static void Do(void)
 {
     SET_DEBUG_STACK;
-    string line;
-    size_t ptr;
+    //     Filter Order
+    int    FiltOrd;
+    double FrequencyBands[2];
 
     /*
      * https://github.com/nxsEdson/Butterworth-Filter/blob/master/butterworth.cpp
      */
-    ifstream ifile("WFAN.txt");
-    vector<double> input, output;
     //double       fps = 100; // Hz
 
     /*
@@ -133,13 +132,49 @@ static void Do(void)
      * I can't really replicate the results in scipy.signal. not sure why.
      */
     //double FrequencyBands[2] = { 1.5/fps*2, 2.5/fps*2 };
-    double FrequencyBands[2] = { 0.3, 0.42};
+#if 0
+    FiltOrd = 4;
+    FrequencyBands[0] = 0.3;
+    FrequencyBands[1] = 0.42;
+#endif
+#if 1
+    /*
+     * initial test in example found:
+     * https://stackoverflow.com/questions/10373184/bandpass-butterworth-filter-implementation-in-c
+     */
+    FiltOrd = 5;
+    FrequencyBands[0] = 0.25;
+    FrequencyBands[1] = 0.375;
 
-    //     Filter Order
-    int FiltOrd = 4;
+    /*
+     * Results they got: 
+     * B= 1,0,-5,0,10,0,-10,0,5,0,-1 
+     * A= 1.000000000000000, -4.945988709743181, 13.556489496973796, -24.700711850327743, 32.994881546824828, -33.180726698160655, 25.546126213403539, -14.802008410165968, 6.285430089797051, -1.772929809750849, 0.277753012228403
+     *
+     * Matlab results
+     * B = 0.0002, 0, -0.0008, 0, 0.0016, 0, -0.0016, 0, 0.0008, 0, -0.0002
+     * A = 1.0000, -4.9460, 13.5565, -24.7007, 32.9948, -33.1806, 25.5461, -14.8020, 6.2854, -1.7729, 0.2778
+     * 
+     * My results: 
+     * Butterworth: ============================================
+     *    Filter Order: 5
+     *    Lower Cutoff: 0.250000
+     *    Upper Cutoff: 0.375000
+     *
+     *(a) Denominator (11): 
+     *     1.000000, -4.945983, 13.556465, -24.700656, 32.994800, -33.180641, 
+     *     25.546063, -14.801975, 6.285418, -1.772928, 0.277753, 
+     *     
+     *(b) Numerator (11): 
+     *     0.000164, 0.000000, -0.000821, 0.000000, 0.001641, 0.000000, 
+     *     -0.001641, 0.000000, 0.000821, 0.000000, -0.000164, 
+     *     
+     *============================================
+     * CHECK!!
+     */
+#endif
 
-    //Create the variables for the numerator and denominator coefficients
-    vector<double> b;
+
     /*
      * Pass Numerator Coefficients and Denominator Coefficients arrays 
      * into function, will return the same.
@@ -149,6 +184,9 @@ static void Do(void)
     vector<double> z;
 
     // read the input data from the file. 
+    string   line;
+    size_t   ptr;
+    ifstream ifile("WFAN.txt");
     do
     {
 	ifile >> line;
@@ -158,14 +196,9 @@ static void Do(void)
 	
     } while (!ifile.eof());
 
-    cout << " size: " << x.size() << endl;
-
-    cout << "Filter order is: " << FiltOrd << endl;
-
     Butterworth bw( FiltOrd, FrequencyBands[0], FrequencyBands[1]);
 
     cout << "Butterworth: " << bw << endl;
-
 
     z = bw.filter(y);
 
