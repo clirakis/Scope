@@ -248,6 +248,27 @@ static void Test1(void)
 #if 1
 static void Test2(void)
 {
+    /* 
+     * data from table from website
+     *  https://www.rfcafe.com/references/electrical/butter-proto-values.htm
+     *
+     * R_S = R_L = 1ohm
+     * omega = 1rad/sec. f = 0.159154
+     */
+    const double Expected[10][10] = 
+    {
+	{2.0    , 0.0    , 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{1.41421, 1.41421, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{1.0    , 2.00000, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{0.76537, 1.84776, 1.84776, 0.76537, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{0.61803, 1.61803, 2.0, 1.61803, 0.61803, 0.0, 0.0, 0.0, 0.0, 0.0},
+	{0.51764, 1.41421,1.93185,1.93185, 1.41421,0.51764,0.0,0.0,0.0,0.0},
+	{0.44504,1.24698,1.80194,2.0,1.80194,1.24698,0.44504,0.0,0.0,0.0},
+	{0.39018,1.11114,1.66294,1.96157,1.96157,1.66294,1.11114,0.39018, 0.0,0.0},
+	{0.34730,1.0,1.53209,1.87938,2.0,1.87938,1.53209,1.0,0.34730,0.0},
+	{0.31287,0.90798,1.41421,1.78201,1.97538,1.97538,1.78201,1.41421,0.90798,0.31287},
+    };
+
     /*
      * https://www.electronics-notes.com/articles/radio/rf-filters/butterworth-formula-equations-calculations.php
      * 1 ohm source
@@ -262,11 +283,41 @@ static void Test2(void)
      * N  = 2
      * C = 0.00530516
      * L = 0.00375132
-     * CHECK!!
+     * CHECK -- not quite, the first element seems large. 
+     *
+     * further checking using the table found here:
+     * https://www.rfcafe.com/references/electrical/butter-proto-values.htm
+     *
+     * R_S = R_L = 1ohm
+     * omega = 1rad/sec. f = 0.159154
+     *
+     * for 1 node expect to have output as 2. got 1. is 2 when input/output 
+     * are equal. 
      */
-    Butterworth bw( 2, 0.0, 0.0, Butterworth::kALOWPASS);
+    double f;
+    f = 0.159154;
+    //f = 60.0;
+    Butterworth bw( 1, 0.0, 0.0, Butterworth::kALOWPASS);
+    
     cout << "Butterworth: " << bw << endl;
-    bw.ALowPass(60.0, false);
+    /*
+     * Compare with table above. 
+     * when true, the results are stunning. 
+     *
+     */
+
+    uint16_t j;
+    vector<double> rc;
+    for (uint16_t i=0;i<10;i++)
+    {
+	cout << "Index : " << i << " ";
+	rc = bw.ALowPass(i+1, f, true);
+	for (j=0;j<i;j++)
+	{
+	    cout << rc[j] - Expected[i][j] << " ";
+	}
+	cout << endl;
+    }
 }
 #endif
 /**

@@ -515,6 +515,8 @@ vector<double> Butterworth::ComputeHP(void)
 *          "Electronics Equations Handbook" by Stephen J Erst
 *              1989 tab books, page 62
 *
+*          https://www.rfcafe.com/references/electrical/butter-proto-values.htm
+*                has a table for checking this out. 
 *          Resulting values
 *          - The termination resistances are assumed to equal 1.
 *          - For a termination resistance equal to R 
@@ -523,6 +525,7 @@ vector<double> Butterworth::ComputeHP(void)
 *          
 *
 * Inputs : 
+*      ntaps       - Filter order
 *      Frequency   - 3dB point in Hz
 *      Termination - True, source and load resistances are equal.
 *
@@ -537,79 +540,103 @@ vector<double> Butterworth::ComputeHP(void)
 *
 *******************************************************************
 */
-void Butterworth::ALowPass(double Frequency, bool Termination)
+vector<double> Butterworth::ALowPass(uint16_t ntaps, double Frequency, 
+				     bool Termination)
 {
     SET_DEBUG_STACK;
     double   omega = 2.0* M_PI * Frequency;
     double   x;                              // scratch variable. 
     uint16_t i, j, k;                        // index variable
     uint16_t m;
-    double   *b, *c, *d, *u, *v;
+    double   *b, *c, *u, *v;
+    double   *vec_b, *vec_c;                 // working vectors 
+    double   *tmpptr;                        // temporary pointer
     double   a[3], r;
     uint16_t na, nb, nc, nu, nv;
+    vector<double> rv;
 
-#if 0
-    int n, m, i, j, k;
-    int na, nb, nc, nu, nv;
+    fFilterOrder = ntaps;
 
-
-    if(argc < 4){
-	printf("Usage: %s n t f\n", argv[0]);
-	printf("  n = filter order\n");
-	printf("  t = termination\n");
-	printf("     0 = same source and load resistance\n");
-	printf("     1 = either source or load resistance\n");
-	printf("  f = 3db cutoff frequency\n");
-	return(1);}
-  
-    n = (int)strtol(argv[1], NULL, 10);
-    char t = argv[2][0];
-    double w = strtod(argv[3],NULL);
-    w *= 2.0*M_PI;
-#endif
+    /*
+     * If the source and sink resistance values are the same
+     * then the code is pretty easy. 
+     */
     if(Termination)
     {
 	for(i=0; i<fFilterOrder; ++i)
 	{
 	    x = 2.0*sin(M_PI*(double)(2*i+1)/(double)(2*fFilterOrder))/omega;
-	    printf("%1.10lf\n", x);
+	    rv.push_back(x);
 	}
-	return;
+	return rv;
     }
 
-    b = (double *)malloc((fFilterOrder+1) * sizeof(double));
-    c = (double *)malloc((fFilterOrder+1) * sizeof(double));
+    /*
+     * use calloc instead of malloc to get zeros
+     * also be super careful so we can free the vectors when done. 
+     */
+    vec_b = (double *)calloc((fFilterOrder+1), sizeof(double));
+    vec_c = (double *)calloc((fFilterOrder+1), sizeof(double));
+    b = vec_b;
+    c = vec_c;
 
-    // initialize the Butterworth polynomial
+    /*
+     * initialize the Butterworth polynomial
+     * Is the filter odd or even in filter order? 
+     * https://people.eecs.ku.edu/~demarest/212/Butterworth%20Polynomials.pdf
+     */
     if(fFilterOrder % 2 == 1)
     {
+	// Odd
 	b[0] = b[1] = 1.0;
-	nb = 2;
-	m = (fFilterOrder - 1)/2;
+	nb   = 2;
+	m    = (fFilterOrder - 1)/2;   // elements to iterate over. 
     }
     else
     {
+	// Even
 	b[0] = 1.0;
-	nb = 1;
-	m = fFilterOrder/2;
+	nb   = 1;
+	m    = fFilterOrder/2;
     }
 
-    // calculate the Butterworth polynomial
+    /*
+     * calculate the Butterworth polynomial
+     * https://people.eecs.ku.edu/~demarest/212/Butterworth%20Polynomials.pdf
+     * loop over the number of taps
+     */
     for(k=0; k<m; ++k)
     {
+	/*
+	 * Setup working variables in A.
+	 * This is essentially a truncated sinc function. 
+	 */
 	a[0] = 1.0;
 	a[1] = 2.0*sin(M_PI*(double)(2*k+1)/(double)(2*fFilterOrder));
 	a[2] = 1.0;
-	na = 3;
-	nc = na + nb - 1;
-	// perform the convolution: a[0,...,na-1] * b[0,...,nb-1]
-	// producing the sequence c[0,...,nc-1] nc=na+nb-1
+
+	na = 3;             // max number of elements in a
+	nc = na + nb - 1;   // max number of elements in c to process.
+
+	/* 
+	 * perform the convolution: a[0,...,na-1] * b[0,...,nb-1]
+	 * producing the sequence c[0,...,nc-1] nc=na+nb-1
+	 * nb is 2 (odd) or 1(even)
+	 */
 	for(i = 0; i < nb; ++i)
 	{
+	    /*
+	     * for each element of c perform the convolution of a and b
+	     * loop over j, j starts at either 0 or (i-na+1) if i < na
+	     * termination is j<=i
+	     */
 	    c[i] = 0.0;
 	    for(j = i < na ? 0 : i - na + 1; j <= i; ++j)
+	    {
 		c[i] += a[i-j] * b[j];
+	    }
 	}
+	// Do the same here
 	for(i = nb; i < nc; ++i)
 	{
 	    c[i] = 0.0;
@@ -618,16 +645,26 @@ void Butterworth::ALowPass(double Frequency, bool Termination)
 		c[i] += a[i-j]*b[j];
 	    }
 	}
-	d = b;
-	b = c;
-	c = d;
-	nb = nc;
+
+	/* 
+	 * swap b and c arrays using pointers. 
+	 * d is a temp pointer
+	 */
+	tmpptr  = b;
+	b       = c;
+	c       = tmpptr;
+	nb      = nc;
     }
 
+#if 0
     // print Butterworth polynomial coefficient values
-    //  printf("\nPolynomial coefficient values\n");
-    //  for(i=0; i<nb; ++i) printf("%1.6lf ", b[i]);
-    //  printf("\n\n");
+    cout << "Polynomial coefficient values:" << endl;
+    for(i=0; i<nb; ++i) 
+    {
+	cout << i << " " << b[i];
+    }
+    cout << endl;
+#endif
 
     // put odd coefficients in c and even coefficients in b
     for(i=1, nb=1, nc=0; i<=fFilterOrder; i+=2, ++nc)
@@ -640,8 +677,10 @@ void Butterworth::ALowPass(double Frequency, bool Termination)
 	}
     }
 
-    // make u the larger of b and c
-    // make v the smaller of b and c
+    /*
+     * make u the larger of b and c
+     * make v the smaller of b and c
+     */
     if(nb > nc)
     {
 	u = b;
@@ -658,35 +697,49 @@ void Butterworth::ALowPass(double Frequency, bool Termination)
     }
 
     // calculate component values
+#if 0
     cout << std::fixed << std::setw(6) << std::setprecision(6);
     cout << "Filter component values for 3dB point at. "
 	 << Frequency  << endl;
-
+#endif
     bool odd = true;
+    /*
+     * nu count on capacitor values
+     * nv count on inductor values 
+     */
     while(nu>0 && nv>0)
     {
 	if(odd)
 	{
 	    r=u[nu-1]/v[nv-1];
-	    cout << "C: " << r/omega << endl;
-	    for(i=1; i<nv; ++i) u[nu-i-1]=u[nu-i-1]-r*v[nv-i-1];
+	    rv.push_back(r/omega);
+	    //cout << "val: " << r/omega << endl;
+	    for(i=1; i<nv; ++i) 
+	    {
+		u[nu-i-1]=u[nu-i-1]-r*v[nv-i-1];
+	    }
 	    --nu;
 	    odd = false;
 	}
 	else
 	{
 	    r=v[nv-1]/u[nu-1];
-	    cout << "L " << r/omega << endl;
-	    for(i=1; i<nu; ++i) v[nv-i-1]=v[nv-i-1]-r*u[nu-i-1];
+	    rv.push_back(r/omega);
+	    //cout << "val " << r/omega << endl;
+	    for(i=1; i<nu; ++i) 
+	    {
+		v[nv-i-1]=v[nv-i-1]-r*u[nu-i-1];
+	    }
 	    --nv;
 	    odd = true;
 	}
     }
-    printf("\n\n");
-    free(u);
-    free(v);
+    //cout << endl;
+    free(vec_b);
+    free(vec_c);
 
     SET_DEBUG_STACK;
+    return rv;
 }
 
 

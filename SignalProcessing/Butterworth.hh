@@ -74,13 +74,14 @@ public:
      *  https://exstrom.com/journal/sigproc/asigproc.html
      *
      * Arguments:
-     *   Frequency - 3dB point in Hz
+     *   ntaps       - filter order
+     *   Frequency   - 3dB point in Hz
      *   Termination - true equal source and load resistances
      *
      * returns:
-     *    
+     *  vector of component values.  
      */
-    void ALowPass(double Frequency, bool Termination);
+    vector<double> ALowPass(uint16_t ntaps, double Frequency, bool Termination);
 
 
     /*!
