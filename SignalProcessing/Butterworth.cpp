@@ -9,6 +9,10 @@
  * Restrictions/Limitations :
  *
  * Change Descriptions :
+ * 16-Jan-23   CBL    Added in a bunch of code to do LP, HP etc. This is from
+ *                    a different code base. 
+ *                    - Adding in a read from CSV that is exported from 
+ *                      python using Pandas. 
  *
  * Classification : Unclassified
  *
@@ -32,6 +36,7 @@ using namespace std;
 #include <iomanip>
 #include <string>
 #include <cmath>
+#include <fstream>
 
 // Local Includes.
 #include "debug.h"
@@ -84,6 +89,43 @@ Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff,
 	// nothing to do right now. 
 	break;
     }
+
+    SET_DEBUG_STACK;
+}
+/**
+ ******************************************************************
+ *
+ * Function Name : Butterworth constructor
+ *
+ * Description : Construct a filter of the type indicated in the last argument
+ *               Don't setup the filter, read the data from a csv file. 
+ *
+ * Inputs :
+ *         FilterOrder
+ *         Lcutoff    - Lower frequency cutoff, nomalized
+ *         Ucutoff    - Upper frequency cutoff, normalized
+ *         Type       - Bandpass, Lowpass, Highpass
+ *
+ * Returns :
+ *
+ * Error Conditions :
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+Butterworth::Butterworth (const char *Filename)
+{
+    SET_DEBUG_STACK;
+    fFilterOrder = 1;
+    fLowerCutoff = 0.0;
+    fUpperCutoff = 0.0;
+    fType        = kLOWPASS;
+    
+    ReadCSVFile(Filename);
 
     SET_DEBUG_STACK;
 }
@@ -140,6 +182,94 @@ void Butterworth::ClearAll(void)
     fNumCoeffs.clear();
     SET_DEBUG_STACK;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : ReadCSVFile
+ *
+ * Description : read all the filter data from a file produced 
+ *               elsewhere. Most likely python.
+ *
+ * Inputs : Filename to parse
+ *
+ * Returns : NONE
+ *
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+bool Butterworth::ReadCSVFile(const char *Filename)
+{
+    SET_DEBUG_STACK;
+    bool     rv = false;
+    string   delimiter = ",";
+    string   token;
+    size_t   pos = 0;
+    uint8_t  index;
+    uint8_t  linecount = 0;
+
+    ifstream mydata(Filename);
+    string   line;
+
+    if (!mydata.fail())
+    {
+	while(!mydata.eof())
+	{
+	    mydata >> line;
+	    cout << line << endl;
+	    // Skip the first line
+	    if(linecount>0)
+	    {
+		index = 0;
+		// There is no , to find at the end of the string
+		// This is a little flawed. 
+		while ((pos = line.find(delimiter)) != string::npos) 
+		{
+		    token = line.substr(0, pos);
+		    cout << "Index: " << (int) index << " Token: " << token << endl;
+		    switch(index)
+		    {
+		    case 0:
+			// row number, skip
+			break;
+		    case 1:
+			fDenomCoeffs.push_back(stod(token));
+			break;
+		    case 2:
+			fNumCoeffs.push_back(stod(token));
+			break;
+		    case 3:
+			fFilterOrder = stod(token);
+			break;
+		    case 4:
+			// cutoff in Fc/F
+			cout << "FOUR: " << token << endl;
+			fLowerCutoff = stod(token);
+			break;
+		    case 5:
+			// cutoff in Fc/F
+			fUpperCutoff = stod(token);
+			break;
+		    }
+		    line.erase(0, pos + delimiter.length());
+		    index++;
+		}
+	    }
+	    linecount++;
+	}
+	rv = true;
+    }
+
+    SET_DEBUG_STACK;
+    return rv;
+}
+
+
 
 /**
  ******************************************************************
@@ -533,7 +663,7 @@ vector<double> Butterworth::ComputeHP(void)
 *
 * Error Conditions : NONE
 * 
-* Unit Tested on: 
+* Unit Tested on: KINDA 16-Jan-22
 *
 * Unit Tested by: CBL
 *
@@ -741,7 +871,103 @@ vector<double> Butterworth::ALowPass(uint16_t ntaps, double Frequency,
     SET_DEBUG_STACK;
     return rv;
 }
+/**
+ ******************************************************************
+ *
+ * Function Name : LowPass
+ *
+ * Description : 
+ *               https://exstrom.com/journal/sigproc/dsigproc.html
+ *               https://exstrom.com/journal/sigproc/bwlpf.c
+ *
+ * Inputs : None
+ *
+ * Returns : 
+ *
+ * Error Conditions : NONE
+ * 
+ * Unit Tested on: 
+ *
+ * Unit Tested by: CBL
+ *
+ *
+ *******************************************************************
+ */
+vector<double> Butterworth::LowPass(double HalfPowerF, double SampleRate)
+{
+    SET_DEBUG_STACK;
+    double   FiltOrd = fFilterOrder/2;
+    uint16_t i;                         // index variable.
+    double   r,s;                       // working variables
+    vector<double> rv;
 
+#if 0
+    if(argc < 4)
+    {
+	printf("Usage: %s n s f\n", argv[0]);
+	printf("Butterworth lowpass filter.\n");
+	printf("  n = filter order 2,4,6,...\n");
+	printf("  s = sampling frequency\n");
+	printf("  f = half power frequency\n");
+	return(-1);
+    }
+    int i, n = (int)strtol(argv[1], NULL, 10);
+
+    n = n/2;
+    double s = strtod(argv[2], NULL);
+    double f = strtod(argv[3], NULL);
+#endif
+
+    double a   = tan(M_PI*HalfPowerF/SampleRate);
+    double a2  = a*a;
+
+    /*
+     * A, d1, d2 are used subsequently to apply the filter. 
+     */
+    double *A  = (double *)malloc(FiltOrd * sizeof(double));
+    double *d1 = (double *)malloc(FiltOrd * sizeof(double));
+    double *d2 = (double *)malloc(FiltOrd * sizeof(double));
+
+    /*
+     *  Do the calculation for the coefficients
+     * How can I put these into a single vector to return?
+     */
+    for(i=0; i<FiltOrd; ++i)
+    {
+	r     = sin(M_PI*(2.0*i+1.0)/(4.0*FiltOrd));
+	s     = a2 + 2.0*a*r + 1.0;
+	A[i]  = a2/s;
+	d1[i] = 2.0*(1-a2)/s;
+	d2[i] = -(a2 - 2.0*a*r + 1.0)/s;
+    }
+#if 0
+    double *w0 = (double *)calloc(FiltOrd,  sizeof(double));
+    double *w1 = (double *)calloc(FiltOrd,  sizeof(double));
+    double *w2 = (double *)calloc(FiltOrd,  sizeof(double));
+    double x;
+    // Filter the data.
+    while(scanf("%lf", &x)!=EOF)
+    {
+	for(i=0; i<FiltOrd; ++i)
+	{
+	    w0[i] = d1[i]*w1[i] + d2[i]*w2[i] + x;
+	    x = A[i]*(w0[i] + 2.0*w1[i] + w2[i]);
+	    w2[i] = w1[i];
+	    w1[i] = w0[i];
+	}
+	printf("%lf\n", x);
+    }
+    free(w0);
+    free(w1);
+    free(w2);
+#endif
+    free(A);
+    free(d1);
+    free(d2);
+
+    SET_DEBUG_STACK;
+    return rv;
+}
 
 /**
  ******************************************************************

@@ -245,7 +245,7 @@ static void Test1(void)
     ofile.close();
 }
 #endif
-#if 1
+#if 0
 static void Test2(void)
 {
     /* 
@@ -320,6 +320,13 @@ static void Test2(void)
     }
 }
 #endif
+#if 1
+void Test3(void)
+{
+    Butterworth bw("BW_coefs.csv");
+    cout << bw << endl;
+}
+#endif
 /**
  ******************************************************************
  *
@@ -389,7 +396,7 @@ int main(int argc, char **argv)
     ProcessCommandLineArgs(argc, argv);
     if (Initialize())
     {
-	Test2();
+	Test3();
     }
     Terminate(0);
 }

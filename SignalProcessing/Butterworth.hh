@@ -10,6 +10,10 @@
  * Restrictions/Limitations : NONE
  *
  * Change Descriptions :
+ * 16-Jan-23   CBL    Added in a bunch of code to do LP, HP etc. This is from
+ *                    a different code base. 
+ *                    - Adding in a read from CSV that is exported from 
+ *                      python using Pandas. 
  *
  * Classification : Unclassified
  *
@@ -45,6 +49,19 @@ public:
      */
     Butterworth(uint16_t FilterOrder, double Lcutoff, double Ucutoff, 
 		FilterType Type=kBANDPASS);
+
+    /*!
+     * Description: 
+     *  Butterworth constructor, import csv file that is made using
+     *  the python tools.   
+     *
+     * Arguments:
+     *   
+     *
+     * returns:
+     *    
+     */
+    Butterworth(const char *Filename);
 
 
     /// Default destructor
@@ -83,6 +100,18 @@ public:
      */
     vector<double> ALowPass(uint16_t ntaps, double Frequency, bool Termination);
 
+    /*!
+     * Description: 
+     *   Digital equivalent of above. 
+     *   https://exstrom.com/journal/sigproc/dsigproc.html
+     *
+     * Arguments:
+     *   
+     *
+     * returns:
+     *    
+     */
+    vector<double> LowPass(double HalfPowerF, double SampleRate);
 
     /*!
      * Description: 
@@ -184,13 +213,27 @@ private:
      */
     void ClearAll(void); 
 
+    /*!
+     * Description: 
+     *   
+     *
+     * Arguments:
+     *   
+     *
+     * Returns:
+     *
+     * Errors:
+     *
+     */
+    bool ReadCSVFile(const char *Filename);
+
 
     uint16_t       fFilterOrder;
     double         fLowerCutoff;
     double         fUpperCutoff;
 
-    vector<double> fDenomCoeffs;
-    vector<double> fNumCoeffs;
+    vector<double> fDenomCoeffs;   // a
+    vector<double> fNumCoeffs;     // b
 
     FilterType     fType; 
 };
