@@ -221,17 +221,30 @@ bool Butterworth::ReadCSVFile(const char *Filename)
 	while(!mydata.eof())
 	{
 	    mydata >> line;
-	    cout << line << endl;
+	    //cout << line << endl;
 	    // Skip the first line
 	    if(linecount>0)
 	    {
 		index = 0;
-		// There is no , to find at the end of the string
-		// This is a little flawed. 
-		while ((pos = line.find(delimiter)) != string::npos) 
+		/*
+		 * The original code of just looping while a delimeter
+		 * is found is flawed. There is always left at 
+		 * the end of the line. 
+		 */
+		while(line.size() > 0) 
 		{
-		    token = line.substr(0, pos);
-		    cout << "Index: " << (int) index << " Token: " << token << endl;
+		    pos = line.find(delimiter);
+		    if (pos != string::npos) 
+		    {
+			token = line.substr(0, pos);
+		    }
+		    else
+		    {
+			// Get the bit after the last delimiter
+			pos   = line.size() - token.length(); 
+			token = line;
+		    }
+		    //cout << "Index: " << (int) index << " Token: " << token << endl;
 		    switch(index)
 		    {
 		    case 0:
