@@ -52,17 +52,31 @@ struct t_Station {
     double    SourcePower[2];  // Watts - Day/night
     double    Distance2Source; // meters
 };
-static struct t_Station AMStations[10] = {
-    {"WMCA 570" , 38.2,  570.0, { 5000, 5000}, 64270.0},    // 0
-    {"WFAN 660" , 30.4,  660.0, {50000,50000}, 50390.0},    // 1
-    {"WOR 710"  , 35.1,  710.0, {50000,50000}, 59000.0},    // 2
-    {"WABC 770" , 29.3,  770.0, {50000,50000}, 49720.0},    // 3
-    {"WNBC 820" , 38.2,  820.0, {50000,50000}, 64270.0}, // ????
-    {"WCBS 880" , 30.4,  880.0, {50000,50000}, 50510.0},    // 5
-    {"WGNY 1220", 19.5, 1220.0, {10000.0, 180.0}, 30780.0},   // 6
-    {"WRVP 1310", 12.5, 1310.0, {5000.0, 33.0},   25300.0},   // 7
-    {"WLNA 1420",  1.4, 1420.0, {5000.0,1000.0} ,  2000.0},   // 8
-    {NULL, 0.0, 0.0}};
+/*
+ * https://en.wikipedia.org/wiki/Extremely_low_frequency
+ * https://en.wikipedia.org/wiki/VLF_Transmitter_Cutler
+ * https://en.wikipedia.org/wiki/Jim_Creek_Naval_Radio_Station
+ * https://ss.sites.mtu.edu/mhugl/2015/10/11/clam-lake-wi-elf-transmitter/
+ * https://www.nist.gov/pml/time-and-frequency-division/time-distribution/radio-station-wwvb
+ *
+ */
+static struct t_Station AMStations[16] = {
+    {"10K"      , 10.0,   10.0, { 1000, 1000}  , 10.0},     // 0
+    {"20K"      , 20.0,   20.0, { 1.0e6, 1.0e6}, 10.0},     // 1
+    {"30K"      , 20.0,   30.0, { 1.0e6, 1.0e6}, 10.0},     // 2
+    {"40K"      , 20.0,   40.0, { 1.0e6, 1.0e6}, 10.0},     // 3
+    {"NAA"      , 10.0,   24.0, { 1.8e6, 1.8e6}, 10.0},     // 4
+    {"WWVB"     , 10.0,   60.0, { 30000, 30000}, 10.0},     // 5
+    {"WMCA 570" , 38.2,  570.0, { 5000, 5000}, 64270.0},    // 6
+    {"WFAN 660" , 30.4,  660.0, {50000,50000}, 50390.0},    // 7
+    {"WOR 710"  , 35.1,  710.0, {50000,50000}, 59000.0},    // 8
+    {"WABC 770" , 29.3,  770.0, {50000,50000}, 49720.0},    // 9
+    {"WNBC 820" , 38.2,  820.0, {50000,50000}, 64270.0},    // 10
+    {"WCBS 880" , 30.4,  880.0, {50000,50000}, 50510.0},    // 11
+    {"WGNY 1220", 19.5, 1220.0, {10000.0, 180.0}, 30780.0}, // 12
+    {"WRVP 1310", 12.5, 1310.0, {5000.0, 33.0},   25300.0}, // 13
+    {"WLNA 1420",  1.4, 1420.0, {5000.0,1000.0} ,  2000.0}, // 14
+    {NULL, 0.0, 0.0}};                                      // 15
 
 
 /**
@@ -213,7 +227,12 @@ bool Monitor::SetupRoot (void)
      * WRVP - 7
      * WLNA - 8
      */
+#if 0
     char *raw_names = (char *)"Index:Time:nTime:FMax:dBMax:dBArea:WFAN:WCBS:WRVP:WLNA";
+#else
+    char *raw_names = (char *)"Index:Time:nTime:FMax:dBMax:dBArea:TEN:TWE:THIT:FOUR";
+
+#endif
     /*
      * Create Ntuple.
      */
@@ -252,7 +271,7 @@ void Monitor::CloseRoot (void)
      * Get the index into the trace array.
      */
 #if 0
-    Trace *      pTrace = scope->GetTrace();
+    Trace *   pTrace = scope->GetTrace();
     uint8_t   Number = pTrace->GetSelectedTrace();
     DefTrace* pDefT  = pTrace->GetDef(Number);
 #endif
@@ -508,16 +527,16 @@ void Monitor::Do(void)
 	    Vec[4] = maxval;
 	    Vec[5] = Area;
 
-	    FindFrequencyIndex(AMStations[1].Freq*1.0e3);
+	    FindFrequencyIndex(AMStations[0].Freq*1.0e3);
 	    Vec[6] = GetPeakValue();
 
-	    FindFrequencyIndex(AMStations[5].Freq*1.0e3);
+	    FindFrequencyIndex(AMStations[1].Freq*1.0e3);
 	    Vec[7] = GetPeakValue();
 
-	    FindFrequencyIndex(AMStations[7].Freq*1.0e3);
+	    FindFrequencyIndex(AMStations[2].Freq*1.0e3);
 	    Vec[8] = GetPeakValue();
 
-	    FindFrequencyIndex(AMStations[8].Freq*1.0e3);
+	    FindFrequencyIndex(AMStations[3].Freq*1.0e3);
 	    Vec[9] = GetPeakValue();
 
 	    fNtuple->Fill(Vec);

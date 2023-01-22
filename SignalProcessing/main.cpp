@@ -320,11 +320,49 @@ static void Test2(void)
     }
 }
 #endif
-#if 1
+#if 0
 void Test3(void)
 {
     Butterworth bw("BW_coefs.csv");
     cout << bw << endl;
+}
+#endif
+#if 1
+void Test4(void)
+{
+    Butterworth bw("BW_coefs.csv");
+    cout << bw << endl;
+    vector<double> x;
+    vector<double> y;
+    vector<double> z;
+
+    // read the input data from the file. 
+    string   line;
+    size_t   ptr;
+
+    ifstream ifile("WFAN.txt");
+    do
+    {
+	ifile >> line;
+	ptr = line.find(',');
+	x.push_back(stod(line.substr(0,ptr)));
+	y.push_back(stod(line.substr(ptr+1)));
+	
+    } while (!ifile.eof());
+
+    z = bw.filter(y);
+
+    cout << "Filter complete. " << endl;
+    ofstream ofile("filtered.txt");
+    if (!ofile.fail())
+    {
+	for (uint32_t i=0;i<z.size();i++)
+	{
+	    ofile << x[i] << " " << y[i] << endl;
+	}
+    }
+    ofile.close();
+    cout << "Done" << endl;
 }
 #endif
 /**
@@ -396,7 +434,7 @@ int main(int argc, char **argv)
     ProcessCommandLineArgs(argc, argv);
     if (Initialize())
     {
-	Test3();
+	Test4();
     }
     Terminate(0);
 }

@@ -180,7 +180,7 @@ void UserSignal(int sig)
 	break;
     case SIGHUP:
 	// Just report
-	logger->LogTime("# SIGHUP received. \n");
+	logger->LogTime("SIGHUP received. \n");
 	break;
     }
 }

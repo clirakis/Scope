@@ -282,8 +282,6 @@ bool Butterworth::ReadCSVFile(const char *Filename)
     return rv;
 }
 
-
-
 /**
  ******************************************************************
  *

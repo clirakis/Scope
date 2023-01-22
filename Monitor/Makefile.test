@@ -1,31 +1,29 @@
 ##################################################################
 #
-#	Makefile for Monitor using gcc on Linux. 
+#	Makefile for test of Stations module using gcc on Linux. 
 #
 #
 #	Modified	by	Reason
 # 	--------	--	------
-#	04-Jan-23       CBL     Original
-#       15-Jan-23	CBL     Added in butterworth filter
+#	21-Jan-23       CBL     Original
+#       22-Jan-23       CBL     Added in Proj
 #
 #
 ######################################################################
 # Machine specific stuff
 #
 #
-TARGET =AMonitor
+TARGET = STest
 #
 # Compile time resolution.
 #
-EXT_CFLAGS = -g
-INCLUDE =  -I$(COMMON)/GPIB -I$(COMMON)/DSA602 -I$(COMMON)/utility \
-	-I/usr/local/include -I$(ROOT_INC)
-LIBS = -L$(DRIVE)/lib_linux -lDSA602 -lmygpib -lutility -L/usr/local/lib \
-	-lgpib $(ROOT_LIBS)
+EXT_CFLAGS = -g -DMAIN
+INCLUDE =  -I$(COMMON)/utility 
+LIBS = -lutility -lproj
 
 # Rules to make the object files depend on the sources.
 SRC     = 
-SRCCPP  = main.cpp Monitor.cpp UserSignals.cpp
+SRCCPP  = Stations.cpp
 SRCS    = $(SRC) $(SRCCPP)
 
 HEADERS = 
