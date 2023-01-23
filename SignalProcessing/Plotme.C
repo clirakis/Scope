@@ -7,21 +7,31 @@
     // Set the grid on. 
     Calvin->SetGrid(); 
 
-    TGraph *tgf = new TGraph("filtered.txt");
-    tgf->SetMarkerStyle(22);
-    tgf->Draw("ALP");
+    TMultiGraph *tmg = new TMultiGraph();
 
-    tgf->GetXaxis()->SetTimeDisplay(1);
-    tgf->GetXaxis()->SetNdivisions(503);
-    tgf->GetXaxis()->SetTimeFormat("%H:%M");
-    tgf->GetXaxis()->SetTimeOffset(-5, "EST");
+    TGraph *tgf1 = new TGraph("Raw.txt");
+    tgf1->SetMarkerStyle(21);
+    tgf1->SetLineColor(2);
+    tmg->Add(tgf1);
+    //tgf1->Draw("ALP");
 
-    TH1 *h = tgf->GetHistogram();
+    TGraph *tgf2 = new TGraph("filtered.txt");
+    tgf2->SetMarkerStyle(22);
+    tgf2->SetMarkerColor(3);
+    tgf2->SetLineColor(3);
+    tmg->Add(tgf2);
+    //tgf2->Draw("ALP");
+
+    tmg->Draw("ALP");
+
+    tmg->GetXaxis()->SetTimeDisplay(1);
+    tmg->GetXaxis()->SetNdivisions(503);
+    tmg->GetXaxis()->SetTimeFormat("%H:%M");
+    tmg->GetXaxis()->SetTimeOffset(-5, "EST");
+
+    TH1 *h = tmg->GetHistogram();
     h->SetXTitle("Time");
     h->SetYTitle("dBm");
     h->SetLabelSize(0.03,"X");
     h->SetLabelSize(0.03,"Y");
-
-
-
 }

@@ -327,11 +327,13 @@ void Test3(void)
     cout << bw << endl;
 }
 #endif
-#if 1
+
 void Test4(void)
 {
-    Butterworth bw("BW_coefs.csv");
+    Filt bw;
+    bw.ReadCSVFile("BW_0.01.csv");
     cout << bw << endl;
+#if 0
     vector<double> x;
     vector<double> y;
     vector<double> z;
@@ -350,6 +352,13 @@ void Test4(void)
 	
     } while (!ifile.eof());
 
+    /*
+     * This particular filter behaves like lfilter in sipy.signal.lfilter
+     * There is a huge phase lag. 
+     *
+     * filtfilt is much more well behaved.
+     *
+     */
     z = bw.filter(y);
 
     cout << "Filter complete. " << endl;
@@ -358,13 +367,14 @@ void Test4(void)
     {
 	for (uint32_t i=0;i<z.size();i++)
 	{
-	    ofile << x[i] << " " << y[i] << endl;
+	    ofile << x[i] << " " << z[i] << endl;
 	}
     }
     ofile.close();
+#endif
     cout << "Done" << endl;
 }
-#endif
+
 /**
  ******************************************************************
  *

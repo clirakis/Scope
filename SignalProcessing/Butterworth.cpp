@@ -4,7 +4,7 @@
  *
  * Author/Date : C.B. Lirakis / 15-Jan-23
  *
- * Description : Generic Butterworth
+ * Description : Calculate Butterworth coefficients
  *
  * Restrictions/Limitations :
  *
@@ -66,8 +66,10 @@ using namespace std;
  *
  *******************************************************************
  */
-Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff,
-			  FilterType Type)
+Butterworth::Butterworth (uint16_t FilterOrder, 
+			  double Lcutoff, 
+			  double Ucutoff,
+			  FilterType Type) : Filt()
 {
     SET_DEBUG_STACK;
     fFilterOrder = FilterOrder;
@@ -92,6 +94,7 @@ Butterworth::Butterworth (uint16_t FilterOrder, double Lcutoff, double Ucutoff,
 
     SET_DEBUG_STACK;
 }
+#if 0
 /**
  ******************************************************************
  *
@@ -129,6 +132,7 @@ Butterworth::Butterworth (const char *Filename)
 
     SET_DEBUG_STACK;
 }
+#endif
 
 /**
  ******************************************************************
@@ -154,132 +158,6 @@ Butterworth::~Butterworth (void)
 {
     SET_DEBUG_STACK;
     SET_DEBUG_STACK;
-}
-/**
- ******************************************************************
- *
- * Function Name : ClearAll
- *
- * Description : Reset all the vectors in prep for a recalculation 
- *
- * Inputs : NONE
- *
- * Returns : NONE
- *
- * Error Conditions : NONE
- * 
- * Unit Tested on: 
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-void Butterworth::ClearAll(void)
-{
-    SET_DEBUG_STACK;
-    fDenomCoeffs.clear();
-    fNumCoeffs.clear();
-    SET_DEBUG_STACK;
-}
-/**
- ******************************************************************
- *
- * Function Name : ReadCSVFile
- *
- * Description : read all the filter data from a file produced 
- *               elsewhere. Most likely python.
- *
- * Inputs : Filename to parse
- *
- * Returns : NONE
- *
- * Error Conditions : NONE
- * 
- * Unit Tested on: 
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-bool Butterworth::ReadCSVFile(const char *Filename)
-{
-    SET_DEBUG_STACK;
-    bool     rv = false;
-    string   delimiter = ",";
-    string   token;
-    size_t   pos = 0;
-    uint8_t  index;
-    uint8_t  linecount = 0;
-
-    ifstream mydata(Filename);
-    string   line;
-
-    if (!mydata.fail())
-    {
-	while(!mydata.eof())
-	{
-	    mydata >> line;
-	    //cout << line << endl;
-	    // Skip the first line
-	    if(linecount>0)
-	    {
-		index = 0;
-		/*
-		 * The original code of just looping while a delimeter
-		 * is found is flawed. There is always left at 
-		 * the end of the line. 
-		 */
-		while(line.size() > 0) 
-		{
-		    pos = line.find(delimiter);
-		    if (pos != string::npos) 
-		    {
-			token = line.substr(0, pos);
-		    }
-		    else
-		    {
-			// Get the bit after the last delimiter
-			pos   = line.size() - token.length(); 
-			token = line;
-		    }
-		    //cout << "Index: " << (int) index << " Token: " << token << endl;
-		    switch(index)
-		    {
-		    case 0:
-			// row number, skip
-			break;
-		    case 1:
-			fDenomCoeffs.push_back(stod(token));
-			break;
-		    case 2:
-			fNumCoeffs.push_back(stod(token));
-			break;
-		    case 3:
-			fFilterOrder = stod(token);
-			break;
-		    case 4:
-			// cutoff in Fc/F
-			cout << "FOUR: " << token << endl;
-			fLowerCutoff = stod(token);
-			break;
-		    case 5:
-			// cutoff in Fc/F
-			fUpperCutoff = stod(token);
-			break;
-		    }
-		    line.erase(0, pos + delimiter.length());
-		    index++;
-		}
-	    }
-	    linecount++;
-	}
-	rv = true;
-    }
-
-    SET_DEBUG_STACK;
-    return rv;
 }
 
 /**
@@ -454,61 +332,7 @@ void Butterworth::ComputeNumCoeffs(void)
     }
     SET_DEBUG_STACK;
 }
-/**
- ******************************************************************
- *
- * Function Name : filter
- *
- * Description : Apply the results
- *
- * Inputs : data vector to process. 
- *
- * Returns : resulting filtered data
- *
- * Error Conditions : NONE
- * 
- * Unit Tested on: 
- *
- * Unit Tested by: CBL
- *
- *
- *******************************************************************
- */
-vector<double> Butterworth::filter(vector<double>x)
-{
-    uint32_t len_x = x.size();
-    uint32_t len_b = fNumCoeffs.size();
-    uint32_t len_a = fDenomCoeffs.size();
 
-    // working variables. 
-    vector<double> zi(len_b);
-    vector<double> filter_x(len_x);
-
-    // Vastly different
-    if (len_a == 1)
-    {
-	for (uint32_t m = 0; m<len_x; m++)
-	{
-	    filter_x[m] = fNumCoeffs[0] * x[m] + zi[0];
-	    for (uint32_t i = 1; i<len_b; i++)
-	    {
-		zi[i-1] = fNumCoeffs[i] * x[m] + zi[i];//-fDenomCoeffs[i]*filter_x[m];
-	    }
-	}
-    }
-    else
-    {
-	for (uint32_t m = 0; m<len_x; m++)
-	{
-	    filter_x[m] = fNumCoeffs[0] * x[m] + zi[0];
-	    for (uint32_t i = 1; i<len_b; i++)
-	    {
-		zi[i-1] = fNumCoeffs[i] * x[m] + zi[i] - fDenomCoeffs[i] * filter_x[m];
-	    }
-	}
-    }
-    return filter_x;
-}
 
 /**
  ******************************************************************
@@ -995,7 +819,7 @@ vector<double> Butterworth::LowPass(double HalfPowerF, double SampleRate)
  *
  * Error Conditions : NONE
  * 
- * Unit Tested on: 16-Jan-23
+ * Unit Tested on: 
  *
  * Unit Tested by: CBL
  *
@@ -1005,31 +829,13 @@ vector<double> Butterworth::LowPass(double HalfPowerF, double SampleRate)
 ostream& operator<<(ostream& output, const Butterworth &n)
 {
     SET_DEBUG_STACK;
-    uint16_t i;
+
     output << std::fixed << std::setw(6) << std::setprecision(6);
     output << "============================================" << endl
 	   << "    Filter Order: " << n.fFilterOrder << endl
 	   << "    Lower Cutoff: " << n.fLowerCutoff << endl
 	   << "    Upper Cutoff: " << n.fUpperCutoff << endl << endl;
-
-    output << "(a) Denominator (" << n.fDenomCoeffs.size() << "): " 
-	   << endl << "     ";
-    for (i=0;i<n.fDenomCoeffs.size(); i++)
-    {
-	output << n.fDenomCoeffs[i] << ", ";
-	if ((i>0) && (i%5 == 0)) output << endl << "     ";
-    }
-    output << endl;
-
-    output << "(b) Numerator (" << n.fNumCoeffs.size() << "): " 
-	   << endl << "     ";
-
-    for (i=0;i<n.fNumCoeffs.size(); i++)
-    {
-	output << n.fNumCoeffs[i] << ", ";
-	if ((i>0) && (i%5 == 0)) output << endl << "     ";
-    }
-    output << endl;
+    output << (Filt) n;
     output << "============================================" << endl;
     SET_DEBUG_STACK;
     return output;

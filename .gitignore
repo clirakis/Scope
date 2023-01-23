@@ -59,3 +59,12 @@ S_Dict.cpp
 # Apple crap from cross mount
 .DS_Store
 ._.DS_Store
+
+# executables
+AMonitor
+STest
+logme
+SP
+
+# command files going to the tektronics
+*.cmds

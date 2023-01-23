@@ -25,17 +25,12 @@
  */
 #ifndef __BUTTERWORTH_hh_
 #define __BUTTERWORTH_hh_
-#  include <vector>
-#  include <complex>
-#  include <stdint.h>
+#  include "Filt.hh"
 
 /// Create a butterworth filter
-class Butterworth {
+class Butterworth : public Filt
+{
 public:
-
-    // What type of filter is it? 
-    enum FilterType {kBANDPASS=0, kLOWPASS, kHIPASS, kALOWPASS};
-
 
     /*!
      * Description: 
@@ -50,6 +45,7 @@ public:
     Butterworth(uint16_t FilterOrder, double Lcutoff, double Ucutoff, 
 		FilterType Type=kBANDPASS);
 
+#if 0
     /*!
      * Description: 
      *  Butterworth constructor, import csv file that is made using
@@ -62,7 +58,7 @@ public:
      *    
      */
     Butterworth(const char *Filename);
-
+#endif
 
     /// Default destructor
     /*!
@@ -76,11 +72,6 @@ public:
      *    
      */
     ~Butterworth();
-
-
-    /// Butterworth function
-    vector<double> filter(vector<double>x);
-
 
     /*!
      * Description: 
@@ -124,7 +115,6 @@ public:
      *    
      */
     friend ostream& operator<<(ostream& output, const Butterworth &n); 
-
 
 private:
     /*!
@@ -197,44 +187,8 @@ private:
      */
     void ComputeDenCoeffs(void);
 
-
-
-    /*!
-     * Description: 
-     *   ClearAll -- Clear the vectors for a recalculation
-     *
-     * Arguments:
-     *   NONE
-     *
-     * Returns: NONE
-     *
-     * Errors: NONE
-     *
-     */
-    void ClearAll(void); 
-
-    /*!
-     * Description: 
-     *   
-     *
-     * Arguments:
-     *   
-     *
-     * Returns:
-     *
-     * Errors:
-     *
-     */
-    bool ReadCSVFile(const char *Filename);
-
-
     uint16_t       fFilterOrder;
     double         fLowerCutoff;
     double         fUpperCutoff;
-
-    vector<double> fDenomCoeffs;   // a
-    vector<double> fNumCoeffs;     // b
-
-    FilterType     fType; 
 };
 #endif
