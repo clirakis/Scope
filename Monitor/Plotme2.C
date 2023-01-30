@@ -13,9 +13,17 @@
 
     // Set the grid on. 
     Calvin->SetGrid(); 
+#if 0
+    const char filename[128];
+
+    memset(filename, 0, sizeof(filename));
+    cout << "Enter file name: ";
+    gets(filename);
+    TFile *tf = new TFile(filename);
+#else
     // Open the file with the data in it. 
     TFile *tf = new TFile("/home/clirakis/Data/2023AMonitor017_00.root");
-
+#endif
     TMultiGraph *tmg = new TMultiGraph();
     TLegend     *tl  = new TLegend(0.1,0.7,0.48,0.9);
     tl->SetHeader("signal strength variation.");
